@@ -90,10 +90,16 @@ canvas.addEventListener('mousedown', (e) => {
 });
 
 let hoveredHexKey = null;
+let mouseX = 0, mouseY = 0; // track cursor for hover tooltip
 
 window.addEventListener('mousemove', (e) => {
     const dx = Math.abs(e.clientX - lastMouseX);
     const dy = Math.abs(e.clientY - lastMouseY);
+
+    // Always update cursor position (used for hover tooltip)
+    mouseX = e.clientX;
+    mouseY = e.clientY;
+
     if (dx > 2 || dy > 2) { // Tolerance for "accidental" drag
         if (e.buttons === 1) { // Left mouse button held
             isDragging = true;
@@ -109,9 +115,19 @@ window.addEventListener('mousemove', (e) => {
 });
 
 canvas.addEventListener('click', (e) => {
-    if (isDragging) return; 
+    if (isDragging) return;
     const hexKey = pixelToHex(e.clientX, e.clientY);
-    socket.emit('build', { coords: hexKey, type: currentBuildType });
+    const hex = worldMap[hexKey];
+
+    if (!hex) return;
+
+    if (hex.owner && hex.owner !== socket.id) {
+        // ATTACK: If someone else owns it
+        socket.emit('attack', hexKey);
+    } else if (!hex.owner) {
+        // BUILD: If no one owns it
+        socket.emit('build', { coords: hexKey, type: currentBuildType });
+    }
 });
 
 // --- MATH HELPERS ---
@@ -180,21 +196,34 @@ function render() {
         }
 
         if (key === hoveredHexKey) {
-            const valid = isMoveValid(key, currentBuildType);
             
-            ctx.save();
-            ctx.globalAlpha = 0.4;
-            ctx.fillStyle = valid ? "#00ff00" : "#ff0000"; // Green if valid, Red if not
-            
-            // Draw highlight hex
-            ctx.beginPath();
-            for (let i = 0; i < 6; i++) {
-                let angle = (Math.PI / 3) * i;
-                ctx.lineTo(px + dynamicSize * Math.cos(angle), py + dynamicSize * Math.sin(angle));
+            if (isTileNeighbor(key) && hex && hex.owner && hex.owner !== socket.id) {
+                // Draw a Red "Target" or different highlight for attacking
+                ctx.strokeStyle = "red";
+                ctx.lineWidth = 3;
+                ctx.beginPath();
+                // Simple X mark
+                ctx.moveTo(px - 10, py - 10); ctx.lineTo(px + 10, py + 10);
+                ctx.moveTo(px + 10, py - 10); ctx.lineTo(px - 10, py + 10);
+                ctx.stroke();
             }
-            ctx.closePath();
-            ctx.fill();
-            ctx.restore();
+            else if (hex && !hex.owner) {
+                const valid = isBuildableTerrain(key, currentBuildType);
+                ctx.save();
+                ctx.globalAlpha = 0.4;
+                ctx.fillStyle = valid ? "#00ff00" : "#ff0000"; // Green if valid, Red if not
+                
+                // Draw highlight hex
+                ctx.beginPath();
+                for (let i = 0; i < 6; i++) {
+                    let angle = (Math.PI / 3) * i;
+                    ctx.lineTo(px + dynamicSize * Math.cos(angle), py + dynamicSize * Math.sin(angle));
+                }
+                ctx.closePath();
+                ctx.fill();
+                ctx.restore();
+            }
+
         }
 
         // 2. Draw Hex Outline
@@ -218,6 +247,76 @@ function render() {
                     , px, py + (5 * zoom));
             }
         }
+
+        // 4. Draw HP bar (if present)
+        if (typeof hex.hp === 'number' && typeof hex.maxHp === 'number' && hex.maxHp > 0) {
+            const barWidth = dynamicSize * 1.4;
+            const barHeight = Math.max(4, 6 * zoom);
+            const barX = px - barWidth / 2;
+            const barY = py + dynamicSize * 0.9;
+
+            // Background
+            ctx.fillStyle = 'rgba(0,0,0,0.6)';
+            ctx.fillRect(barX, barY, barWidth, barHeight);
+
+            // Fill
+            const pct = Math.max(0, Math.min(1, hex.hp / hex.maxHp));
+            ctx.fillStyle = '#4caf50';
+            ctx.fillRect(barX, barY, barWidth * pct, barHeight);
+
+            // Border
+            ctx.strokeStyle = 'rgba(255,255,255,0.1)';
+            ctx.strokeRect(barX, barY, barWidth, barHeight);
+
+            if (zoom > 0.6) {
+                ctx.fillStyle = 'white';
+                ctx.font = `${10 * zoom}px Arial`;
+                ctx.textAlign = 'center';
+                ctx.fillText(`${hex.hp}/${hex.maxHp}`, px, barY + barHeight + (8 * zoom));
+            }
+        }
+
+        if (hex.owner && hex.hp < hex.maxHp) {
+            const barWidth = dynamicSize;
+            const barHeight = 4;
+            const healthPercent = hex.hp / hex.maxHp;
+
+            ctx.fillStyle = "red";
+            ctx.fillRect(px - barWidth/2, py + dynamicSize/2, barWidth, barHeight);
+
+            ctx.fillStyle = "#00ff00";
+            ctx.fillRect(px - barWidth/2, py + dynamicSize/2, barWidth * healthPercent, barHeight);
+        }
+    }
+
+    // Hover tooltip (draw last so it's on top)
+    if (hoveredHexKey && worldMap[hoveredHexKey]) {
+        const info = worldMap[hoveredHexKey];
+        const lines = [`${hoveredHexKey}`, `Terrain: ${info.terrain}`, `Type: ${info.type}`];
+        if (typeof info.hp === 'number' && typeof info.maxHp === 'number') lines.push(`HP: ${info.hp}/${info.maxHp}`);
+        if (info.owner) lines.push(`Owner: ${info.owner}`);
+
+        // Tooltip styling
+        const padding = 8;
+        ctx.font = `${12 * Math.min(1, zoom)}px Arial`;
+        ctx.textAlign = 'left';
+        let maxW = 0;
+        for (const l of lines) maxW = Math.max(maxW, ctx.measureText(l).width);
+        const tw = maxW + padding * 2;
+        const th = lines.length * (14 * Math.min(1, zoom)) + padding * 2;
+        const tx = mouseX + 12; // offset from cursor
+        const ty = mouseY + 12;
+
+        ctx.save();
+        ctx.globalAlpha = 0.95;
+        ctx.fillStyle = 'rgba(0,0,0,0.85)';
+        ctx.fillRect(tx, ty, tw, th);
+        ctx.fillStyle = 'white';
+        ctx.textBaseline = 'top';
+        for (let i = 0; i < lines.length; i++) {
+            ctx.fillText(lines[i], tx + padding, ty + padding + i * (14 * Math.min(1, zoom)));
+        }
+        ctx.restore();
     }
 }
 
@@ -229,11 +328,14 @@ socket.on('mapUpdate', (data) => {
 });
 
 socket.on('resourceUpdate', (data) => {
-    document.getElementById('foodVal').innerText = data.food;
-    document.getElementById('goldVal').innerText = data.gold;
-    document.getElementById('stoneVal').innerText = data.stone;
-    document.getElementById('tilesVal').innerText = data.tiles;
-    document.getElementById('populationVal').innerText = data.population;
+    const setIfExists = (id, val) => { const el = document.getElementById(id); if (el) el.innerText = val; };
+    setIfExists('foodVal', data.food);
+    setIfExists('goldVal', data.gold);
+    setIfExists('stoneVal', data.stone);
+    setIfExists('tilesVal', data.tiles);
+    setIfExists('populationVal', data.population);
+    setIfExists('militaryVal', data.military);
+    setIfExists('armyVal', data.army);
 });
 
 socket.on('connect', () => {
@@ -245,7 +347,7 @@ socket.on('connect', () => {
 socket.on('error', (msg) => showMessage(msg));
 
 // Client-side quick validity check used for hover UI (mirrors server-side rules enough for display)
-function isMoveValid(hexKey, type) {
+function isBuildableTerrain(hexKey, type) {
     const hex = worldMap[hexKey];
     if (!hex || hex.owner !== null) return false;
 
@@ -254,6 +356,10 @@ function isMoveValid(hexKey, type) {
 
     if (!myId) return false; // not connected / haven't joined yet
 
+    return isTileNeighbor(hexKey)
+}
+
+function isTileNeighbor(hexKey) {
     const [q, r] = hexKey.split(',').map(Number);
     return NEIGHBORS.some(offset => {
         const nKey = `${q + offset.q},${r + offset.r}`;

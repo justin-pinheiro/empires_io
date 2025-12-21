@@ -18,10 +18,23 @@ const TERRAIN_RULES = {
     capital:['plains', 'forest', 'desert'] 
 };
 
-const TICK_RATE = 5000; 
+const BUILDING_HP = {
+    capital: 30,
+    tower: 15,
+    mine: 8,
+    farm: 8,
+    market: 10,
+    camp: 10,
+    house: 4,
+    empty: 0
+};
+
+const ARMY_TICK_RATE = 1000; 
+const REBUILD_TICK_RATE = 3000; 
+
 let worldMap = {};
 let players = {}; 
-const MAP_SIZE = 20;
+const MAP_SIZE = 5;
 
 function initMap() {
     // Define weights (higher number = more frequent)
@@ -51,8 +64,10 @@ function initMap() {
             worldMap[`${q},${r}`] = { 
                 owner: null, 
                 type: 'empty', 
-                terrain: terrain 
-            };
+                terrain: terrain,
+                hp: BUILDING_HP['empty'],
+                maxHp: BUILDING_HP['empty']
+            }; 
         }
     }
 }
@@ -72,6 +87,7 @@ io.on('connection', (socket) => {
         const color = `hsl(${Math.random() * 360}, 70%, 50%)`;
         players[socket.id] = {
             color: color,
+            army: 0,
             buildings: {
                 capital: 1,
                 farm: 0,
@@ -93,7 +109,14 @@ io.on('connection', (socket) => {
             const allowedTerrains = TERRAIN_RULES['capital'];
             if(hex && hex.owner === null && allowedTerrains.includes(hex.terrain)) {
                 startHex = `${q},${r}`;
-                worldMap[startHex] = { owner: socket.id, type: 'capital', color: color, terrain: hex.terrain };
+                worldMap[startHex] = { 
+                    ...worldMap[startHex],
+                    owner: socket.id, 
+                    type: 'capital', 
+                    color: color, 
+                    hp: BUILDING_HP['capital'],
+                    maxHp: BUILDING_HP['capital']
+                };
                 break;
             }
         }
@@ -145,9 +168,13 @@ io.on('connection', (socket) => {
                 ...worldMap[coords],
                 owner: socket.id, 
                 type: type, 
-                color: player.color 
+                color: player.color ,
+                hp: BUILDING_HP[type],
+                maxHp: BUILDING_HP[type]
             };
     
+            updateAreaStats(coords);
+
             io.emit('mapUpdate', worldMap);
             socket.emit('resourceUpdate', res);
         }
@@ -156,6 +183,75 @@ io.on('connection', (socket) => {
             return;
         }
     });
+
+    socket.on('attack', (coords) => {
+    const attacker = players[socket.id];
+    const hex = worldMap[coords];
+
+    // Basic validations
+    if (!attacker) return; // invalid player
+    if (!hex || !hex.owner) return; // nothing to attack
+    if (hex.owner === socket.id) return; // can't attack self
+
+    // Must be adjacent to one of your tiles to attack
+    const [q, r] = coords.split(',').map(Number);
+    const canReach = neighbors.some(offset => {
+        const nKey = `${q + offset.q},${r + offset.r}`;
+        return worldMap[nKey] && worldMap[nKey].owner === socket.id;
+    });
+    if (!canReach) {
+        socket.emit('error', 'Target not in reach (must be adjacent to your territory).');
+        return;
+    }
+
+    // Must have army
+    if (attacker.army < 1) {
+        socket.emit('error', 'No army available to attack!');
+        return;
+    }
+
+    // Spend one army for the assault
+    attacker.army -= 1;
+
+    const damage = 1;
+
+    let prevOwner = hex.owner;
+    hex.hp = (typeof hex.hp === 'number' ? hex.hp : (BUILDING_HP[hex.type] || 0)) - damage;
+
+    // If destroyed -> capture and adjust building counts
+    let capturedPrevOwner = null;
+    if (hex.hp <= 0) {
+        const prevType = hex.type || 'empty';
+
+        // Decrement previous owner's building count safely
+        if (players[prevOwner] && players[prevOwner].buildings[prevType] > 0) {
+            players[prevOwner].buildings[prevType]--;
+        }
+
+        // Capture as a small outpost (camp)
+        hex.owner = socket.id;
+        hex.color = attacker.color;
+        hex.hp = BUILDING_HP[hex.type];
+        hex.maxHp = BUILDING_HP[hex.type];
+
+        // Increment attacker's building count
+        attacker.buildings[hex.type] = (attacker.buildings[hex.type] || 0) + 1;
+
+        capturedPrevOwner = prevOwner;
+
+        updateAreaStats(coords);
+    }
+
+    io.emit('mapUpdate', worldMap);
+
+    // Send resource update to attacker
+    socket.emit('resourceUpdate', getPlayerResources(socket.id));
+
+    // If we captured something, notify the previous owner (if connected)
+    if (capturedPrevOwner && players[capturedPrevOwner]) {
+        io.to(capturedPrevOwner).emit('resourceUpdate', getPlayerResources(capturedPrevOwner));
+    }
+});
 
     socket.on('disconnect', () => {
         delete players[socket.id];
@@ -187,10 +283,67 @@ function getPlayerResources(playerId) {
         food: (b.capital * 1) + (b.farm * 3) - b.house,
         gold: (b.capital * 1) + (b.market * 2) - b.camp,
         stone: (b.capital * 1) + (b.mine * 2) - b.tower,
-        tiles: Object.values(b).reduce((a, b) => a + b, 0)
+        military: (b.capital * 1) + (b.camp * 1),
+        army: players[playerId].army,
+        tiles: Object.values(b).reduce((a, b) => a + b, 0),
     };
-
-    console.log("player ", playerId, " resources : ", resources)
-
     return resources
 }
+
+function refreshTileStats(coords) {
+    const hex = worldMap[coords];
+    if (!hex || !hex.owner) return;
+    
+    const baseHp = BUILDING_HP[hex.type] || 0;
+    const bonus = getTowerBonus(coords, hex.owner);
+    
+    hex.maxHp = baseHp + bonus;
+    hex.hp = hex.hp + bonus;
+    // Keep current HP from exceeding new max
+    if (hex.hp > hex.maxHp) hex.hp = hex.maxHp; 
+}
+
+function updateAreaStats(coords) {
+    refreshTileStats(coords); // Update the tile itself
+    const [q, r] = coords.split(',').map(Number);
+    neighbors.forEach(offset => { // Update all neighbors
+        refreshTileStats(`${q + offset.q},${r + offset.r}`);
+    });
+}
+
+function getTowerBonus(coords, ownerId) {
+    const [q, r] = coords.split(',').map(Number);
+    let bonus = 0;
+    neighbors.forEach(offset => {
+        const nKey = `${q + offset.q},${r + offset.r}`;
+        const neighbor = worldMap[nKey];
+        if (neighbor && neighbor.type === 'tower' && neighbor.owner === ownerId) {
+            bonus += 5;
+        }
+    });
+    return bonus;
+}
+
+setInterval(() => {
+    for (let id in players) {
+        const player = players[id];
+        const res = getPlayerResources(id);
+        
+        if (player.army < res.military) {
+            player.army++;
+            
+            const updatedResources = { ...res, army: player.army };
+            io.to(id).emit('resourceUpdate', updatedResources);
+        }
+    }
+}, ARMY_TICK_RATE);
+
+setInterval(() => {
+    for (let key in worldMap) {
+        const hex = worldMap[key];
+        if (hex.owner && hex.hp < hex.maxHp) {
+            hex.hp = Math.min(hex.maxHp, hex.hp + 1);
+        }
+    }
+    io.emit('mapUpdate', worldMap);
+}, REBUILD_TICK_RATE);
