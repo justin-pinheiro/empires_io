@@ -10,9 +10,30 @@
 </head>
 <body>
     <div id="ui">
-        <h1>Hex Empire MVP</h1>
-        <p>Empty Hex Map Loaded</p>
+        <div id="resources">
+            Tiles: <span id="tilesVal">0</span>/<span id="populationVal">0</span> (Population) |
+            Food: <span id="foodVal">0</span> | 
+            Gold: <span id="goldVal">0</span> | 
+            Stone: <span id="stoneVal">0</span>
+        </div>
+        <div id="buildMenu">
+            <button onclick="setBuildType('farm')">Farm</button>
+            <button onclick="setBuildType('market')">Market</button>
+            <button onclick="setBuildType('mine')">Mine</button>
+            <button onclick="setBuildType('house')">House</button>
+            <button onclick="setBuildType('camp')">Camp</button>
+            <button onclick="setBuildType('camp')">Tower</button>
+        </div>
     </div>
+
+    <style>
+        #ui { 
+            position: absolute; top: 0; left: 0; width: 100%; 
+            padding: 15px; background: rgba(0,0,0,0.5); color: white;
+            display: flex; justify-content: space-between;
+        }
+        button { cursor: pointer; padding: 8px; margin-right: 5px; }
+    </style>
     <canvas id="gameCanvas"></canvas>
     <script src="/socket.io/socket.io.js"></script>
     <script src="script.js"></script>
