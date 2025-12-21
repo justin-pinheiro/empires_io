@@ -7,6 +7,15 @@ let myId = null;
 let currentBuildType = 'farm';
 const HEX_SIZE = 30;
 
+const BUILDING_ICONS = {};
+const iconNames = ['farm', 'market', 'mine', 'house', 'camp', 'tower', 'capital', 'barbarian_camp'];
+
+iconNames.forEach(name => {
+    const img = new Image();
+    img.src = `/buildings/${name}.png`;
+    BUILDING_ICONS[name] = img;
+});
+
 const TERRAIN_COLORS = {
     water: '#2b65ec2f',
     desert: '#edc9af35',
@@ -60,9 +69,6 @@ function updateHexCache() {
     hctx.strokeStyle = '#444';
     hctx.lineWidth = 2;
     hctx.stroke();
-    // leave the hex center transparent so terrain colors show through
-    // hctx.fillStyle = '#333';
-    // hctx.fill();
 }
 updateHexCache();
 
@@ -78,7 +84,7 @@ canvas.height = window.innerHeight;
 
 canvas.addEventListener('wheel', (e) => {
     e.preventDefault();
-    zoom -= e.deltaY * 0.001;
+    zoom -= e.deltaY * 0.002;
     zoom = Math.min(Math.max(0.1, zoom), 3);
     needsRedraw = true;
 }, { passive: false });
@@ -90,7 +96,11 @@ canvas.addEventListener('mousedown', (e) => {
 });
 
 let hoveredHexKey = null;
-let mouseX = 0, mouseY = 0; // track cursor for hover tooltip
+
+// UI elements (populated after DOM load)
+const waveTimerEl = document.getElementById('waveTimer');
+const waveBarFill = document.getElementById('waveBarFill');
+const buildCooldownEl = document.getElementById('buildCooldown');
 
 window.addEventListener('mousemove', (e) => {
     const dx = Math.abs(e.clientX - lastMouseX);
@@ -196,24 +206,26 @@ function render() {
         }
 
         if (key === hoveredHexKey) {
+            const hex = worldMap[key];
             
+            // 1. ATTACK OVERLAY
             if (isTileNeighbor(key) && hex && hex.owner && hex.owner !== socket.id) {
-                // Draw a Red "Target" or different highlight for attacking
                 ctx.strokeStyle = "red";
                 ctx.lineWidth = 3;
                 ctx.beginPath();
-                // Simple X mark
                 ctx.moveTo(px - 10, py - 10); ctx.lineTo(px + 10, py + 10);
                 ctx.moveTo(px + 10, py - 10); ctx.lineTo(px - 10, py + 10);
                 ctx.stroke();
-            }
+            } 
+            // 2. GHOST BUILDING PREVIEW
             else if (hex && !hex.owner) {
                 const valid = isBuildableTerrain(key, currentBuildType);
-                ctx.save();
-                ctx.globalAlpha = 0.4;
-                ctx.fillStyle = valid ? "#00ff00" : "#ff0000"; // Green if valid, Red if not
                 
-                // Draw highlight hex
+                ctx.save(); // Start isolation
+                
+                // Draw the background highlight
+                ctx.globalAlpha = 0.3;
+                ctx.fillStyle = valid ? "#00ff00" : "#ff0000";
                 ctx.beginPath();
                 for (let i = 0; i < 6; i++) {
                     let angle = (Math.PI / 3) * i;
@@ -221,9 +233,19 @@ function render() {
                 }
                 ctx.closePath();
                 ctx.fill();
-                ctx.restore();
-            }
+                
+                // Draw the Ghost Building Icon
+                if (valid && zoom > 0.5) {
+                    ctx.globalAlpha = 0.4;
+                    const icon = BUILDING_ICONS[currentBuildType];
+                    if (icon && icon.complete) {
+                        const iconSize = dynamicSize * 0.8;
+                        ctx.drawImage(icon, px - iconSize / 2, py - iconSize / 2, iconSize, iconSize);
+                    }
+                }
 
+                ctx.restore(); // <--- ADD THIS HERE to reset alpha to 1.0 for the next hex
+            }
         }
 
         // 2. Draw Hex Outline
@@ -238,43 +260,13 @@ function render() {
             ctx.fill();
             ctx.globalAlpha = 1.0;
 
-            if (zoom > 0.5) {
-                ctx.fillStyle = "white";
-                ctx.font = `${12 * zoom}px Arial`;
-                ctx.textAlign = "center";
-                ctx.fillText(
-                    hex.type[0].toUpperCase()+hex.type[1].toLowerCase()
-                    , px, py + (5 * zoom));
+            const icon = BUILDING_ICONS[hex.type];
+            if (icon && icon.complete && zoom > 0.4) {
+                const iconSize = dynamicSize * 0.8;
+                ctx.drawImage(icon, px - iconSize / 2, py - iconSize / 2, iconSize, iconSize);
             }
         }
 
-        // 4. Draw HP bar (if present)
-        if (typeof hex.hp === 'number' && typeof hex.maxHp === 'number' && hex.maxHp > 0) {
-            const barWidth = dynamicSize * 1.4;
-            const barHeight = Math.max(4, 6 * zoom);
-            const barX = px - barWidth / 2;
-            const barY = py + dynamicSize * 0.9;
-
-            // Background
-            ctx.fillStyle = 'rgba(0,0,0,0.6)';
-            ctx.fillRect(barX, barY, barWidth, barHeight);
-
-            // Fill
-            const pct = Math.max(0, Math.min(1, hex.hp / hex.maxHp));
-            ctx.fillStyle = '#4caf50';
-            ctx.fillRect(barX, barY, barWidth * pct, barHeight);
-
-            // Border
-            ctx.strokeStyle = 'rgba(255,255,255,0.1)';
-            ctx.strokeRect(barX, barY, barWidth, barHeight);
-
-            if (zoom > 0.6) {
-                ctx.fillStyle = 'white';
-                ctx.font = `${10 * zoom}px Arial`;
-                ctx.textAlign = 'center';
-                ctx.fillText(`${hex.hp}/${hex.maxHp}`, px, barY + barHeight + (8 * zoom));
-            }
-        }
 
         if (hex.owner && hex.hp < hex.maxHp) {
             const barWidth = dynamicSize;
@@ -289,35 +281,6 @@ function render() {
         }
     }
 
-    // Hover tooltip (draw last so it's on top)
-    if (hoveredHexKey && worldMap[hoveredHexKey]) {
-        const info = worldMap[hoveredHexKey];
-        const lines = [`${hoveredHexKey}`, `Terrain: ${info.terrain}`, `Type: ${info.type}`];
-        if (typeof info.hp === 'number' && typeof info.maxHp === 'number') lines.push(`HP: ${info.hp}/${info.maxHp}`);
-        if (info.owner) lines.push(`Owner: ${info.owner}`);
-
-        // Tooltip styling
-        const padding = 8;
-        ctx.font = `${12 * Math.min(1, zoom)}px Arial`;
-        ctx.textAlign = 'left';
-        let maxW = 0;
-        for (const l of lines) maxW = Math.max(maxW, ctx.measureText(l).width);
-        const tw = maxW + padding * 2;
-        const th = lines.length * (14 * Math.min(1, zoom)) + padding * 2;
-        const tx = mouseX + 12; // offset from cursor
-        const ty = mouseY + 12;
-
-        ctx.save();
-        ctx.globalAlpha = 0.95;
-        ctx.fillStyle = 'rgba(0,0,0,0.85)';
-        ctx.fillRect(tx, ty, tw, th);
-        ctx.fillStyle = 'white';
-        ctx.textBaseline = 'top';
-        for (let i = 0; i < lines.length; i++) {
-            ctx.fillText(lines[i], tx + padding, ty + padding + i * (14 * Math.min(1, zoom)));
-        }
-        ctx.restore();
-    }
 }
 
 // --- SOCKETS ---
@@ -325,6 +288,23 @@ function render() {
 socket.on('mapUpdate', (data) => {
     worldMap = data;
     needsRedraw = true;
+});
+
+socket.on('waveCountdown', (data) => {
+    const secs = data.seconds ?? 0;
+    const total = data.total ?? 15;
+    if (waveTimerEl) waveTimerEl.innerText = `${secs}s`;
+    if (waveBarFill) waveBarFill.style.width = `${Math.round(100 * (1 - secs / total))}%`;
+});
+
+socket.on('waveEvent', (data) => {
+    const msg = data && data.message ? data.message : 'A barbarian wave has arrived!';
+    showMessage(msg);
+});
+
+socket.on('abilityUpdate', (data) => {
+    const secs = data.buildCooldown || 0;
+    if (buildCooldownEl) buildCooldownEl.innerText = secs > 0 ? `Cooldown: ${secs}s` : 'Ready';
 });
 
 socket.on('resourceUpdate', (data) => {

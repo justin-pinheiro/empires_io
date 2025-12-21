@@ -8,6 +8,15 @@ const io = new Server(server);
 
 app.use(express.static('public'));
 
+const MAP_SIZE = 5;
+const BUILD_COUNTDOWN = 5
+const ARMY_COUNTDOWN = 1; 
+const REBUILD_COUNTDOWN = 3; 
+const BARBARIAN_SPAWN_COUNTDOWN = 30;
+const BARBARIAN_ATTACK_COUNTDOWN = 3;
+
+BARBARIAN_ID = 'BARBARIAN_NPC';
+
 const TERRAIN_RULES = {
     farm:   ['plains', 'forest'],
     mine:   ['mountain', 'desert'],
@@ -15,7 +24,8 @@ const TERRAIN_RULES = {
     house:  ['plains', 'forest', 'desert'],
     camp:   ['plains', 'forest', 'desert'],
     tower:  ['plains', 'forest', 'desert'],
-    capital:['plains', 'forest', 'desert'] 
+    capital:['plains', 'forest', 'desert'],
+    barbarian_camp: ['plains', 'forest', 'desert', 'mountain'],
 };
 
 const BUILDING_HP = {
@@ -26,15 +36,26 @@ const BUILDING_HP = {
     market: 10,
     camp: 10,
     house: 4,
-    empty: 0
+    empty: 0,
+    barbarian_camp: 10
 };
-
-const ARMY_TICK_RATE = 1000; 
-const REBUILD_TICK_RATE = 3000; 
 
 let worldMap = {};
 let players = {}; 
-const MAP_SIZE = 5;
+let armyCountDown = 0;
+let rebuildCountDown = 0;
+let barbarianSpawnCountDown = BARBARIAN_SPAWN_COUNTDOWN;
+let barbarianAttackCountDown = BARBARIAN_ATTACK_COUNTDOWN;
+let waveNumber = 0; // counts waves for notifications
+
+// build cooldown for players is stored in players[id].buildCountDown (seconds)
+
+// Initialize the Barbarian player object
+players[BARBARIAN_ID] = {
+    color: '#000000', // Black
+    army: 999, // Infinite army for attacks
+    buildings: { barbarian_camp: 0 }
+};
 
 function initMap() {
     // Define weights (higher number = more frequent)
@@ -82,12 +103,15 @@ io.on('connection', (socket) => {
     console.log('User connected:', socket.id);
 
     socket.emit('mapUpdate', worldMap);
+    // Send initial wave countdown so clients can display the timer immediately
+    socket.emit('waveCountdown', { seconds: barbarianSpawnCountDown, total: BARBARIAN_SPAWN_COUNTDOWN });
 
     socket.on('join', () => {
         const color = `hsl(${Math.random() * 360}, 70%, 50%)`;
         players[socket.id] = {
             color: color,
             army: 0,
+            buildCountDown: 0,
             buildings: {
                 capital: 1,
                 farm: 0,
@@ -122,6 +146,8 @@ io.on('connection', (socket) => {
         }
         io.emit('mapUpdate', worldMap);
         socket.emit('resourceUpdate', getPlayerResources(socket.id));
+        // Send initial ability cooldown state to the new player
+        socket.emit('abilityUpdate', { buildCooldown: players[socket.id].buildCountDown || 0 });
     });
 
     socket.on('build', (data) => {
@@ -131,7 +157,7 @@ io.on('connection', (socket) => {
 
         // 1. Basic checks (existence, adjacency, ownership)
         const hex = worldMap[coords];
-        if (!hex || hex.owner !== null) return;
+        if (!hex || hex.owner !== null || player.buildCountDown > 0) return;
         
         // Frontier Rule: Check if any neighbor belongs to player
         const [q, r] = coords.split(',').map(Number);
@@ -177,6 +203,8 @@ io.on('connection', (socket) => {
 
             io.emit('mapUpdate', worldMap);
             socket.emit('resourceUpdate', res);
+            player.buildCountDown = BUILD_COUNTDOWN;
+            io.to(socket.id).emit('abilityUpdate', { buildCooldown: player.buildCountDown });
         }
         else {
             player.buildings[type]--;
@@ -221,25 +249,38 @@ io.on('connection', (socket) => {
     // If destroyed -> capture and adjust building counts
     let capturedPrevOwner = null;
     if (hex.hp <= 0) {
-        const prevType = hex.type || 'empty';
+       
+        if (prevOwner === BARBARIAN_ID) {
+            // Player defeated a Barbarian Camp -> Clear the tile
+            worldMap[coords] = {
+                ...worldMap[coords],
+                owner: null,
+                type: 'empty',
+                hp: 0,
+                maxHp: 0
+            };
+            updateAreaStats(coords);
+        } else {
+            const prevType = hex.type || 'empty';
 
-        // Decrement previous owner's building count safely
-        if (players[prevOwner] && players[prevOwner].buildings[prevType] > 0) {
-            players[prevOwner].buildings[prevType]--;
+            // Decrement previous owner's building count safely
+            if (players[prevOwner] && players[prevOwner].buildings[prevType] > 0) {
+                players[prevOwner].buildings[prevType]--;
+            }
+
+            // Capture as a small outpost (camp)
+            hex.owner = socket.id;
+            hex.color = attacker.color;
+            hex.hp = BUILDING_HP[hex.type];
+            hex.maxHp = BUILDING_HP[hex.type];
+
+            // Increment attacker's building count
+            attacker.buildings[hex.type] = (attacker.buildings[hex.type] || 0) + 1;
+
+            capturedPrevOwner = prevOwner;
+
+            updateAreaStats(coords);
         }
-
-        // Capture as a small outpost (camp)
-        hex.owner = socket.id;
-        hex.color = attacker.color;
-        hex.hp = BUILDING_HP[hex.type];
-        hex.maxHp = BUILDING_HP[hex.type];
-
-        // Increment attacker's building count
-        attacker.buildings[hex.type] = (attacker.buildings[hex.type] || 0) + 1;
-
-        capturedPrevOwner = prevOwner;
-
-        updateAreaStats(coords);
     }
 
     io.emit('mapUpdate', worldMap);
@@ -325,25 +366,126 @@ function getTowerBonus(coords, ownerId) {
 }
 
 setInterval(() => {
-    for (let id in players) {
-        const player = players[id];
-        const res = getPlayerResources(id);
-        
-        if (player.army < res.military) {
-            player.army++;
-            
-            const updatedResources = { ...res, army: player.army };
-            io.to(id).emit('resourceUpdate', updatedResources);
-        }
-    }
-}, ARMY_TICK_RATE);
+    armyCountDown--;
+    rebuildCountDown--;
+    barbarianAttackCountDown--;
+    barbarianSpawnCountDown--;
 
-setInterval(() => {
-    for (let key in worldMap) {
-        const hex = worldMap[key];
-        if (hex.owner && hex.hp < hex.maxHp) {
-            hex.hp = Math.min(hex.maxHp, hex.hp + 1);
+    if (armyCountDown <= 0)
+    {
+        for (let id in players) {
+            const player = players[id];
+            const res = getPlayerResources(id);
+            
+            if (player.army < res.military) {
+                player.army++;
+                
+                const updatedResources = { ...res, army: player.army };
+                io.to(id).emit('resourceUpdate', updatedResources);
+            }
+        }
+        armyCountDown = ARMY_COUNTDOWN;
+    }
+
+    if (rebuildCountDown <= 0) {
+        for (let key in worldMap) {
+            const hex = worldMap[key];
+            if (hex.owner && hex.hp < hex.maxHp) {
+                hex.hp = Math.min(hex.maxHp, hex.hp + 1);
+            }
+        }
+        io.emit('mapUpdate', worldMap);
+        rebuildCountDown = REBUILD_COUNTDOWN;
+    }
+
+    for (let id in players) {
+        if (players[id].buildCountDown > 0) {
+            players[id].buildCountDown --;
+            // Send ability update so client can show cooldown
+            io.to(id).emit('abilityUpdate', { buildCooldown: players[id].buildCountDown });
         }
     }
-    io.emit('mapUpdate', worldMap);
-}, REBUILD_TICK_RATE);
+
+    if (barbarianSpawnCountDown <= 0) {
+        let spawned = 0;
+        waveNumber++;
+        for (let id in players) {
+            if (id === BARBARIAN_ID) continue;
+            
+            // Find all player tiles
+            const playerTiles = Object.keys(worldMap).filter(key => worldMap[key].owner === id);
+            if (playerTiles.length === 0) continue;
+
+            // Pick a random tile and try to spawn a camp in an empty neighbor
+            const randomTile = playerTiles[Math.floor(Math.random() * playerTiles.length)];
+            const [q, r] = randomTile.split(',').map(Number);
+            
+            for (let offset of neighbors) {
+                const nKey = `${q + offset.q},${r + offset.r}`;
+                const target = worldMap[nKey];
+                
+                // Spawn if empty and not water
+                if (target && !target.owner && target.terrain !== 'water' && Math.random() > 0.7) {
+                    worldMap[nKey] = {
+                        ...target,
+                        owner: BARBARIAN_ID,
+                        type: 'barbarian_camp',
+                        color: '#000000',
+                        hp: BUILDING_HP['barbarian_camp'],
+                        maxHp: BUILDING_HP['barbarian_camp']
+                    };
+                    updateAreaStats(nKey);
+                    spawned++;
+                    break; 
+                }
+            }
+        }
+        if (spawned > 0) {
+            io.emit('waveEvent', { wave: waveNumber, spawned: spawned, message: `Barbarian wave ${waveNumber} spawned ${spawned} camp(s)` });
+            console.log(`Barbarian wave ${waveNumber} spawned ${spawned} camps`);
+        }
+        io.emit('mapUpdate', worldMap);
+        barbarianSpawnCountDown = BARBARIAN_SPAWN_COUNTDOWN;
+    }
+
+    if (barbarianAttackCountDown <= 0) {
+        const affectedPlayers = new Set();
+        for (let key in worldMap) {
+            const hex = worldMap[key];
+            if (hex.owner === BARBARIAN_ID) {
+                const [q, r] = key.split(',').map(Number);
+                for (let offset of neighbors) {
+                    const nKey = `${q + offset.q},${r + offset.r}`;
+                    const target = worldMap[nKey];
+                    
+                    if (target && target.owner && target.owner !== BARBARIAN_ID) {
+                        target.hp -= 1; // Direct damage
+                        if (target.hp <= 0) {
+                            // Barbarian captures the tile!
+                            const prevOwner = target.owner;
+                            if (players[prevOwner]) {
+                                players[prevOwner].buildings[target.type]--;
+                                affectedPlayers.add(prevOwner);
+                            }
+                            
+                            target.owner = BARBARIAN_ID;
+                            target.type = 'barbarian_camp';
+                            target.color = '#000000';
+                            target.hp = BUILDING_HP['barbarian_camp'];
+                            updateAreaStats(nKey);
+                        }
+                        break; // One attack per camp per tick
+                    }
+                }
+            }
+        }
+        // Notify affected players about resource changes
+        for (const pid of affectedPlayers) {
+            if (players[pid]) io.to(pid).emit('resourceUpdate', getPlayerResources(pid));
+        }
+        barbarianAttackCountDown = BARBARIAN_ATTACK_COUNTDOWN;
+    }
+
+    // Broadcast the remaining time until the next barbarian spawn so clients can show a countdown
+    io.emit('waveCountdown', { seconds: barbarianSpawnCountDown, total: BARBARIAN_SPAWN_COUNTDOWN });
+}, 1000);
