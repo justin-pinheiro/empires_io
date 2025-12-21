@@ -181,11 +181,13 @@ socket.on('error', (msg) => showMessage(msg));
 
 requestAnimationFrame(gameLoop);
 
-// UI Helper
-function setBuildType(type) {
+function setBuildType(buttonElement, type) {
     currentBuildType = type;
+    document.querySelectorAll('.build-btn').forEach(btn => {
+        btn.classList.remove('active');
+    });
+    buttonElement.classList.add('active');
 }
-
 
 function showMessage(text) {
     const el = document.createElement("div");

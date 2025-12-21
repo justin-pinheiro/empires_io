@@ -17,22 +17,34 @@
             Stone: <span id="stoneVal">0</span>
         </div>
         <div id="buildMenu">
-            <button onclick="setBuildType('farm')">Farm</button>
-            <button onclick="setBuildType('market')">Market</button>
-            <button onclick="setBuildType('mine')">Mine</button>
-            <button onclick="setBuildType('house')">House</button>
-            <button onclick="setBuildType('camp')">Camp</button>
-            <button onclick="setBuildType('camp')">Tower</button>
+            <button class="build-btn active" onclick="setBuildType(this, 'farm')">Farm</button>
+            <button class="build-btn" onclick="setBuildType(this, 'market')">Market</button>
+            <button class="build-btn" onclick="setBuildType(this, 'mine')">Mine</button>
+            <button class="build-btn" onclick="setBuildType(this, 'house')">House</button>
+            <button class="build-btn" onclick="setBuildType(this, 'camp')">Camp</button>
+            <button class="build-btn" onclick="setBuildType(this, 'tower')">Tower</button>
         </div>
     </div>
 
     <style>
         #ui { 
-            position: absolute; top: 0; left: 0; width: 100%; 
-            padding: 15px; background: rgba(0,0,0,0.5); color: white;
-            display: flex; justify-content: space-between;
+            position: absolute; 
+            top: 0; 
+            left: 0; 
+            width: 100%; 
+            padding: 15px; 
+            background: rgba(0,0,0,0.5); 
+            color: white;
+            display: flex; 
+            justify-content: space-between;
+            /* REMOVE pointer-events: none; from here */
+            z-index: 10; /* Ensure it stays above the canvas */
         }
-        button { cursor: pointer; padding: 8px; margin-right: 5px; }
+        #buildMenu {
+            pointer-events: auto; /* Explicitly allow clicking the buttons */
+        }
+        .build-btn { padding: 10px; cursor: pointer; border: 1px solid #555; background: #222; color: white; }
+        .build-btn.active { background: #ffd700; color: black; font-weight: bold; border-color: white; }
     </style>
     <canvas id="gameCanvas"></canvas>
     <script src="/socket.io/socket.io.js"></script>
