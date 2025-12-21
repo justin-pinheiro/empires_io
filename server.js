@@ -2,18 +2,19 @@ const express = require('express');
 const http = require('http');
 const { Server } = require('socket.io');
 
+PORT = 3000;
 const app = express();
 const server = http.createServer(app);
 const io = new Server(server);
 
 app.use(express.static('public'));
 
-const MAP_SIZE = 5;
+const MAP_SIZE = 10;
 const BUILD_COUNTDOWN = 5
 const ARMY_COUNTDOWN = 1; 
 const REBUILD_COUNTDOWN = 3; 
 const BARBARIAN_SPAWN_COUNTDOWN = 30;
-const BARBARIAN_ATTACK_COUNTDOWN = 3;
+const BARBARIAN_ATTACK_COUNTDOWN = 2;
 
 BARBARIAN_ID = 'BARBARIAN_NPC';
 
@@ -29,17 +30,37 @@ const TERRAIN_RULES = {
 };
 
 const BUILDING_HP = {
-    capital: 30,
-    tower: 15,
-    mine: 8,
-    farm: 8,
-    market: 10,
-    camp: 10,
-    house: 4,
+    capital: 90,
+    tower: 45,
+    mine: 30,
+    farm: 18,
+    market: 30,
+    camp: 36,
+    house: 18,
     empty: 0,
-    barbarian_camp: 10
+    barbarian_camp: 30
 };
-
+// Costs for constructing buildings. 'pop' is population cost, other fields consume resources.
+const BUILDING_COSTS = {
+    farm: { pop: 0, food: -2, gold: 0, stone: 0 },
+    mine: { pop: 0, food: 0, gold: 0, stone: -1 },
+    market: { pop: 0, food: 0, gold: -1, stone: 0 },
+    house: { pop: -3, food: 1, gold: 0, stone: 0 }, // houses do not cost pop, only food
+    camp: { pop: 0, food: 0, gold: 1, stone: 0 },
+    tower: { pop: 0, food: 0, gold: 0, stone: 1 },
+    capital: { pop: 0, food: 0, gold: 0, stone: 0 },
+    barbarian_camp: { pop: 0, food: 0, gold: 0, stone: 0 }
+};
+const REWARD = {
+    farm: { pop: 0, food: 2, gold: 0, stone: 0 },
+    mine: { pop: 0, food: 0, gold: 0, stone: 1 },
+    market: { pop: 0, food: 0, gold: 1, stone: 0 },
+    house: { pop: 2, food: 0, gold: 0, stone: 0 }, // houses do not cost pop, only food
+    camp: { pop: 0, food: 0, gold: 0, stone: 0 },
+    tower: { pop: 0, food: 0, gold: 0, stone: 0 },
+    capital: { pop: 0, food: 0, gold: 0, stone: 0 },
+    barbarian_camp: { pop: 0, food: 0, gold: 0, stone: 0 }
+};
 let worldMap = {};
 let players = {}; 
 let armyCountDown = 0;
@@ -120,6 +141,13 @@ io.on('connection', (socket) => {
                 camp: 0,
                 house: 0,
                 tower: 0
+            },
+            // Stored resource state for the player (updated over time)
+            resources: {
+                population: 5,
+                food: 1,
+                gold: 1,
+                stone: 1
             }
         };
         
@@ -147,7 +175,7 @@ io.on('connection', (socket) => {
         io.emit('mapUpdate', worldMap);
         socket.emit('resourceUpdate', getPlayerResources(socket.id));
         // Send initial ability cooldown state to the new player
-        socket.emit('abilityUpdate', { buildCooldown: players[socket.id].buildCountDown || 0 });
+        socket.emit('abilityUpdate', { buildCooldown: players[socket.id].buildCountDown || 0, total: BUILD_COUNTDOWN });
     });
 
     socket.on('build', (data) => {
@@ -167,57 +195,77 @@ io.on('connection', (socket) => {
         });
         if (!isAdjacent) return;
 
-        // 2. Resource Validation Logic
-        // Pre-calculate what resources would look like AFTER building this
-        players[socket.id].buildings[type]++;
-        let res = getPlayerResources(socket.id);
-        
-        let canBuild = true;
-
+        // 2. Resource Validation Logic (now using stored resources)
         const allowedTerrains = TERRAIN_RULES[type];
         if (allowedTerrains && !allowedTerrains.includes(hex.terrain)) {
-            canBuild = false;
             socket.emit('error', `${type.toUpperCase()} must be built on: ${allowedTerrains.join(', ')}`);
-        }
-        if (res.population < res.tiles) {
-            canBuild = false
-            socket.emit('error', 'Not enough population!'); 
-        }
-        if (res.food < 0 || res.gold < 0 || res.stone < 0) {
-            canBuild = false
-            socket.emit('error', 'Not enough resources!'); 
-        }
-
-        if (canBuild) {
-            // Preserve existing tile properties (like terrain) when claiming
-            worldMap[coords] = { 
-                ...worldMap[coords],
-                owner: socket.id, 
-                type: type, 
-                color: player.color ,
-                hp: BUILDING_HP[type],
-                maxHp: BUILDING_HP[type]
-            };
-    
-            updateAreaStats(coords);
-
-            io.emit('mapUpdate', worldMap);
-            socket.emit('resourceUpdate', res);
-            player.buildCountDown = BUILD_COUNTDOWN;
-            io.to(socket.id).emit('abilityUpdate', { buildCooldown: player.buildCountDown });
-        }
-        else {
-            player.buildings[type]--;
             return;
         }
+        
+        tiles = Object.values(player.buildings).reduce((a, c) => a + c, 0)
+        // Special survival rule: if low population and no food, force building farms only
+        if (player.resources.population - tiles <= 1 && player.resources.food <= 0 && type !== 'farm') {
+            socket.emit('error', 'You have 1 pop and no food — you must build a farm first.');
+            return;
+        }
+        
+        const cost = BUILDING_COSTS[type] || { pop: 1, food: 0, gold: 0, stone: 0 };
+        
+        // Check population
+        if (player.resources.population - tiles < (cost.pop + 1 || 1)) {
+            socket.emit('error', 'Not enough population! Build houses!');
+            return;
+        }
+        
+        // Check resources (houses only cost food instead of pop)
+        if ((player.resources.food || 0) < (cost.food || 0)
+            || (player.resources.gold || 0) < (cost.gold || 0)
+            || (player.resources.stone || 0) < (cost.stone || 0)) {
+            socket.emit('error', 'Not enough resources!');
+            return;
+        }
+
+        // Deduct costs
+        player.resources.population -= (cost.pop || 0);
+        player.resources.food -= (cost.food || 0);
+        player.resources.gold -= (cost.gold || 0);
+        player.resources.stone -= (cost.stone || 0);
+
+        // Apply building and set HP
+        player.buildings[type] = (player.buildings[type] || 0) + 1;
+        worldMap[coords] = { 
+            ...worldMap[coords],
+            owner: socket.id, 
+            type: type, 
+            color: player.color ,
+            hp: BUILDING_HP[type],
+            maxHp: BUILDING_HP[type]
+        };
+
+        updateAreaStats(coords);
+
+        io.emit('mapUpdate', worldMap);
+        socket.emit('resourceUpdate', getPlayerResources(socket.id));
+        player.buildCountDown = BUILD_COUNTDOWN;
+        io.to(socket.id).emit('abilityUpdate', { buildCooldown: player.buildCountDown });
     });
 
-    socket.on('attack', (coords) => {
+    socket.on('attack', (data) => {
     const attacker = players[socket.id];
+    if (!attacker) return; // invalid player
+
+    // Support old format (string) and new format { coords, count }
+    let coords = null;
+    let count = 1;
+    if (typeof data === 'string') coords = data;
+    else if (data && data.coords) {
+        coords = data.coords;
+        count = Number(data.count) || 1;
+    }
+
     const hex = worldMap[coords];
 
     // Basic validations
-    if (!attacker) return; // invalid player
     if (!hex || !hex.owner) return; // nothing to attack
     if (hex.owner === socket.id) return; // can't attack self
 
@@ -232,16 +280,16 @@ io.on('connection', (socket) => {
         return;
     }
 
-    // Must have army
-    if (attacker.army < 1) {
-        socket.emit('error', 'No army available to attack!');
+    // Must have enough army
+    if (attacker.army < count) {
+        socket.emit('error', `Not enough army to send ${count} troops!`);
         return;
     }
 
-    // Spend one army for the assault
-    attacker.army -= 1;
+    // Spend the armies for the assault
+    attacker.army -= count;
 
-    const damage = 1;
+    const damage = count; // Each troop deals 1 damage; sending more deals proportionally more damage
 
     let prevOwner = hex.owner;
     hex.hp = (typeof hex.hp === 'number' ? hex.hp : (BUILDING_HP[hex.type] || 0)) - damage;
@@ -249,7 +297,6 @@ io.on('connection', (socket) => {
     // If destroyed -> capture and adjust building counts
     let capturedPrevOwner = null;
     if (hex.hp <= 0) {
-       
         if (prevOwner === BARBARIAN_ID) {
             // Player defeated a Barbarian Camp -> Clear the tile
             worldMap[coords] = {
@@ -260,15 +307,20 @@ io.on('connection', (socket) => {
                 maxHp: 0
             };
             updateAreaStats(coords);
-        } else {
+        } 
+        else {
             const prevType = hex.type || 'empty';
+            const reward = REWARD[hex.type] || { pop: 0, food: 0, gold: 0, stone: 0 };
 
-            // Decrement previous owner's building count safely
-            if (players[prevOwner] && players[prevOwner].buildings[prevType] > 0) {
-                players[prevOwner].buildings[prevType]--;
-            }
+            players[prevOwner].buildings[prevType]--;
+            players[prevOwner].resources.population -= reward.pop;
 
-            // Capture as a small outpost (camp)
+            // get reward
+            attacker.resources.population += (reward.pop || 0);
+            attacker.resources.food += (reward.food || 0);
+            attacker.resources.gold += (reward.gold || 0);
+            attacker.resources.stone += (reward.stone || 0);
+
             hex.owner = socket.id;
             hex.color = attacker.color;
             hex.hp = BUILDING_HP[hex.type];
@@ -285,7 +337,7 @@ io.on('connection', (socket) => {
 
     io.emit('mapUpdate', worldMap);
 
-    // Send resource update to attacker
+    // Send resource update (army included) to attacker
     socket.emit('resourceUpdate', getPlayerResources(socket.id));
 
     // If we captured something, notify the previous owner (if connected)
@@ -299,6 +351,11 @@ io.on('connection', (socket) => {
     });
 });
 
+server.listen(PORT, '0.0.0.0', () => {
+    console.log(`Server is live!`);
+    console.log(`Local access: http://localhost:${PORT}`);
+    console.log(`Network access: http://192.168.0.37:${PORT}`);
+});
 server.listen(3000, () => console.log('Server running on port 3000'));
 
 function isMoveValid(hexKey, type) {
@@ -317,18 +374,22 @@ function isMoveValid(hexKey, type) {
 }
 
 function getPlayerResources(playerId) {
-    const b = players[playerId].buildings;
-    
-    resources = {
-        population: (b.capital * 4) + (b.house * 2),
-        food: (b.capital * 1) + (b.farm * 3) - b.house,
-        gold: (b.capital * 1) + (b.market * 2) - b.camp,
-        stone: (b.capital * 1) + (b.mine * 2) - b.tower,
-        military: (b.capital * 1) + (b.camp * 1),
-        army: players[playerId].army,
-        tiles: Object.values(b).reduce((a, b) => a + b, 0),
+    const p = players[playerId];
+    if (!p) return {};
+
+    const b = p.buildings;
+    const stored = p.resources || { population: 0, food: 0, gold: 0, stone: 0 };
+
+    const resources = {
+        population: stored.population,
+        food: stored.food,
+        gold: stored.gold,
+        stone: stored.stone,
+        military: (b.capital * 5) + (b.camp * 5),
+        army: p.army,
+        tiles: Object.values(b).reduce((a, c) => a + c, 0),
     };
-    return resources
+    return resources;
 }
 
 function refreshTileStats(coords) {
@@ -378,7 +439,7 @@ setInterval(() => {
             const res = getPlayerResources(id);
             
             if (player.army < res.military) {
-                player.army++;
+                player.army += 1 + player.buildings.camp;
                 
                 const updatedResources = { ...res, army: player.army };
                 io.to(id).emit('resourceUpdate', updatedResources);
@@ -420,29 +481,32 @@ setInterval(() => {
             const randomTile = playerTiles[Math.floor(Math.random() * playerTiles.length)];
             const [q, r] = randomTile.split(',').map(Number);
             
-            for (let offset of neighbors) {
-                const nKey = `${q + offset.q},${r + offset.r}`;
+            const validNeighborKeys = neighbors
+                .map(offset => `${q + offset.q},${r + offset.r}`)
+                .filter(nKey => {
+                    const target = worldMap[nKey];
+                    return target && !target.owner && target.terrain !== 'water';
+                });
+
+            // 2. If at least one valid spot exists, pick one and spawn
+            if (validNeighborKeys.length > 0) {
+                const nKey = validNeighborKeys[Math.floor(Math.random() * validNeighborKeys.length)];
                 const target = worldMap[nKey];
-                
-                // Spawn if empty and not water
-                if (target && !target.owner && target.terrain !== 'water' && Math.random() > 0.7) {
-                    worldMap[nKey] = {
-                        ...target,
-                        owner: BARBARIAN_ID,
-                        type: 'barbarian_camp',
-                        color: '#000000',
-                        hp: BUILDING_HP['barbarian_camp'],
-                        maxHp: BUILDING_HP['barbarian_camp']
-                    };
-                    updateAreaStats(nKey);
-                    spawned++;
-                    break; 
-                }
+
+                worldMap[nKey] = {
+                    ...target,
+                    owner: BARBARIAN_ID,
+                    type: 'barbarian_camp',
+                    color: '#000000',
+                    hp: BUILDING_HP['barbarian_camp'],
+                    maxHp: BUILDING_HP['barbarian_camp']
+                };
+                updateAreaStats(nKey);
+                spawned++;
             }
         }
         if (spawned > 0) {
             io.emit('waveEvent', { wave: waveNumber, spawned: spawned, message: `Barbarian wave ${waveNumber} spawned ${spawned} camp(s)` });
-            console.log(`Barbarian wave ${waveNumber} spawned ${spawned} camps`);
         }
         io.emit('mapUpdate', worldMap);
         barbarianSpawnCountDown = BARBARIAN_SPAWN_COUNTDOWN;

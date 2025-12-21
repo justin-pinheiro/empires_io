@@ -5,6 +5,7 @@ const ctx = canvas.getContext('2d');
 let worldMap = {};
 let myId = null;
 let currentBuildType = 'farm';
+let sendCount = 1; // number of troops to send on attack (1 / 10 / 50)
 const HEX_SIZE = 30;
 
 const BUILDING_ICONS = {};
@@ -100,7 +101,9 @@ let hoveredHexKey = null;
 // UI elements (populated after DOM load)
 const waveTimerEl = document.getElementById('waveTimer');
 const waveBarFill = document.getElementById('waveBarFill');
-const buildCooldownEl = document.getElementById('buildCooldown');
+const buildTimerEl = document.getElementById('buildTimer');
+const buildBarFill = document.getElementById('buildBarFill');
+const buildMenu = document.getElementById('buildMenu');
 
 window.addEventListener('mousemove', (e) => {
     const dx = Math.abs(e.clientX - lastMouseX);
@@ -132,11 +135,19 @@ canvas.addEventListener('click', (e) => {
     if (!hex) return;
 
     if (hex.owner && hex.owner !== socket.id) {
-        // ATTACK: If someone else owns it
-        socket.emit('attack', hexKey);
-    } else if (!hex.owner) {
+        // ATTACK: If someone else owns it, send selected troop count
+        socket.emit('attack', { coords: hexKey, count: sendCount });
+        document.querySelectorAll('.build-btn').forEach(btn => {
+            btn.classList.remove('active');
+        });
+        currentBuildType = null;
+    } else if (!hex.owner && currentBuildType) {
         // BUILD: If no one owns it
         socket.emit('build', { coords: hexKey, type: currentBuildType });
+        document.querySelectorAll('.build-btn').forEach(btn => {
+            btn.classList.remove('active');
+        });
+        currentBuildType = null;
     }
 });
 
@@ -218,7 +229,8 @@ function render() {
                 ctx.stroke();
             } 
             // 2. GHOST BUILDING PREVIEW
-            else if (hex && !hex.owner) {
+            else if (hex && !hex.owner && currentBuildType) {
+
                 const valid = isBuildableTerrain(key, currentBuildType);
                 
                 ctx.save(); // Start isolation
@@ -304,7 +316,16 @@ socket.on('waveEvent', (data) => {
 
 socket.on('abilityUpdate', (data) => {
     const secs = data.buildCooldown || 0;
-    if (buildCooldownEl) buildCooldownEl.innerText = secs > 0 ? `Cooldown: ${secs}s` : 'Ready';
+    const total = data.total ?? 5;
+    if (secs > 0) {
+        buildTimerEl.innerText = `Building available in ${secs}s`;
+        buildMenu.style.display = 'none';
+    }
+    else {
+        buildTimerEl.innerText = `Ready to build`;
+        buildMenu.style.display = 'block';
+    }
+    if (buildBarFill) buildBarFill.style.width = `${Math.round(100 * (1 - secs / total))}%`;
 });
 
 socket.on('resourceUpdate', (data) => {
@@ -356,6 +377,35 @@ function setBuildType(buttonElement, type) {
     });
     buttonElement.classList.add('active');
 }
+
+function setTroopCount(buttonElement, count) {
+    sendCount = count;
+    document.querySelectorAll('.troop-btn').forEach(btn => btn.classList.remove('active'));
+    buttonElement.classList.add('active');
+}
+
+// Prevent camera jump when interacting with UI buttons:
+// Reset dragging and last mouse positions on mousedown so the next canvas mousemove doesn't jump the camera.
+document.querySelectorAll('.build-btn').forEach(btn => {
+    btn.setAttribute('type', 'button'); // ensure no default submit behavior
+    btn.addEventListener('mousedown', (e) => {
+        e.preventDefault();
+        isDragging = false;
+        lastMouseX = e.clientX;
+        lastMouseY = e.clientY;
+    });
+});
+
+// Same protection for troop buttons
+document.querySelectorAll('.troop-btn').forEach(btn => {
+    btn.setAttribute('type', 'button');
+    btn.addEventListener('mousedown', (e) => {
+        e.preventDefault();
+        isDragging = false;
+        lastMouseX = e.clientX;
+        lastMouseY = e.clientY;
+    });
+});
 
 function showMessage(text) {
     const el = document.createElement("div");
