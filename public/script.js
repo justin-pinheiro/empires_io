@@ -7,6 +7,30 @@ let myId = null;
 let currentBuildType = 'farm';
 const HEX_SIZE = 30;
 
+const TERRAIN_COLORS = {
+    water: '#2b65ec2f',
+    desert: '#edc9af35',
+    plains: '#7efc0031',
+    mountain: '#572b0c31',
+    forest: '#228b222f'
+};
+
+// Client-side terrain/build rules (kept in sync with server)
+const TERRAIN_RULES = {
+    farm:   ['plains', 'forest'],
+    mine:   ['mountain', 'desert'],
+    market: ['plains', 'desert'],
+    house:  ['plains', 'forest', 'desert'],
+    camp:   ['plains', 'forest', 'desert'],
+    tower:  ['plains', 'forest', 'desert'],
+    capital:['plains', 'forest', 'desert']
+};
+
+const NEIGHBORS = [
+    {q:1, r:0}, {q:1, r:-1}, {q:0, r:-1},
+    {q:-1, r:0}, {q:-1, r:1}, {q:0, r:1}
+];
+
 // Camera State
 let camX = window.innerWidth / 2;
 let camY = window.innerHeight / 2;
@@ -36,8 +60,9 @@ function updateHexCache() {
     hctx.strokeStyle = '#444';
     hctx.lineWidth = 2;
     hctx.stroke();
-    hctx.fillStyle = '#333';
-    hctx.fill();
+    // leave the hex center transparent so terrain colors show through
+    // hctx.fillStyle = '#333';
+    // hctx.fill();
 }
 updateHexCache();
 
@@ -64,6 +89,8 @@ canvas.addEventListener('mousedown', (e) => {
     lastMouseY = e.clientY;
 });
 
+let hoveredHexKey = null;
+
 window.addEventListener('mousemove', (e) => {
     const dx = Math.abs(e.clientX - lastMouseX);
     const dy = Math.abs(e.clientY - lastMouseY);
@@ -77,6 +104,8 @@ window.addEventListener('mousemove', (e) => {
             needsRedraw = true;
         }
     }
+    hoveredHexKey = pixelToHex(e.clientX, e.clientY);
+    needsRedraw = true;
 });
 
 canvas.addEventListener('click', (e) => {
@@ -133,14 +162,48 @@ function render() {
         // Culling
         if (px < -offset || px > canvas.width + offset || py < -offset || py > canvas.height + offset) continue;
 
-        // 1. Draw Background Hex
+        const hex = worldMap[key];
+
+        // 1. Draw terrain fill for the whole hex so colors are visible
+        if (hex.terrain) {
+            ctx.fillStyle = TERRAIN_COLORS[hex.terrain] || '#333';
+            ctx.beginPath();
+            for (let i = 0; i < 6; i++) {
+                const angle = (Math.PI / 3) * i;
+                const x = px + dynamicSize * Math.cos(angle);
+                const y = py + dynamicSize * Math.sin(angle);
+                if (i === 0) ctx.moveTo(x, y);
+                else ctx.lineTo(x, y);
+            }
+            ctx.closePath();
+            ctx.fill();
+        }
+
+        if (key === hoveredHexKey) {
+            const valid = isMoveValid(key, currentBuildType);
+            
+            ctx.save();
+            ctx.globalAlpha = 0.4;
+            ctx.fillStyle = valid ? "#00ff00" : "#ff0000"; // Green if valid, Red if not
+            
+            // Draw highlight hex
+            ctx.beginPath();
+            for (let i = 0; i < 6; i++) {
+                let angle = (Math.PI / 3) * i;
+                ctx.lineTo(px + dynamicSize * Math.cos(angle), py + dynamicSize * Math.sin(angle));
+            }
+            ctx.closePath();
+            ctx.fill();
+            ctx.restore();
+        }
+
+        // 2. Draw Hex Outline
         ctx.drawImage(hexCache, px - offset, py - offset, drawW, drawH);
 
-        // 2. Draw Owner Color & Type
-        const hex = worldMap[key];
+        // 3. Draw Owner Overlay & Type
         if (hex.owner) {
-            ctx.globalAlpha = 0.7;
-            ctx.fillStyle = hex.color;
+            ctx.globalAlpha = 0.6;
+            ctx.fillStyle = hex.color || 'white';
             ctx.beginPath();
             ctx.arc(px, py, dynamicSize * 0.7, 0, Math.PI * 2);
             ctx.fill();
@@ -174,10 +237,29 @@ socket.on('resourceUpdate', (data) => {
 });
 
 socket.on('connect', () => {
+    // Save our socket id locally so client-side validation can know which tiles belong to us
+    myId = socket.id;
     socket.emit('join'); // Automatically join on connection
 });
 
 socket.on('error', (msg) => showMessage(msg));
+
+// Client-side quick validity check used for hover UI (mirrors server-side rules enough for display)
+function isMoveValid(hexKey, type) {
+    const hex = worldMap[hexKey];
+    if (!hex || hex.owner !== null) return false;
+
+    const allowed = TERRAIN_RULES[type];
+    if (allowed && !allowed.includes(hex.terrain)) return false;
+
+    if (!myId) return false; // not connected / haven't joined yet
+
+    const [q, r] = hexKey.split(',').map(Number);
+    return NEIGHBORS.some(offset => {
+        const nKey = `${q + offset.q},${r + offset.r}`;
+        return worldMap[nKey] && worldMap[nKey].owner === myId;
+    });
+}
 
 requestAnimationFrame(gameLoop);
 

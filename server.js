@@ -8,21 +8,55 @@ const io = new Server(server);
 
 app.use(express.static('public'));
 
+const TERRAIN_RULES = {
+    farm:   ['plains', 'forest'],
+    mine:   ['mountain', 'desert'],
+    market: ['plains', 'desert'],
+    house:  ['plains', 'forest', 'desert'],
+    camp:   ['plains', 'forest', 'desert'],
+    tower:  ['plains', 'forest', 'desert'],
+    capital:['plains', 'forest', 'desert'] 
+};
+
 const TICK_RATE = 5000; 
 let worldMap = {};
 let players = {}; 
-const MAP_SIZE = 50;
+const MAP_SIZE = 20;
 
 function initMap() {
+    // Define weights (higher number = more frequent)
+    const weights = {
+        plains: 60,   // Common
+        forest: 20,   // Uncommon
+        desert: 10,   // Rare
+        mountain: 10, // Very Rare
+        water: 5     // Very Rare
+    };
+
+    // Create a "weighted deck" to pull from
+    const weightedTypes = [];
+    for (let type in weights) {
+        for (let i = 0; i < weights[type]; i++) {
+            weightedTypes.push(type);
+        }
+    }
+
     for (let q = -MAP_SIZE; q <= MAP_SIZE; q++) {
         let r1 = Math.max(-MAP_SIZE, -q - MAP_SIZE);
         let r2 = Math.min(MAP_SIZE, -q + MAP_SIZE);
         for (let r = r1; r <= r2; r++) {
-            worldMap[`${q},${r}`] = { owner: null, type: 'empty', color: '#333' };
+            // Pick randomly from the weighted array
+            const terrain = weightedTypes[Math.floor(Math.random() * weightedTypes.length)];
+            
+            worldMap[`${q},${r}`] = { 
+                owner: null, 
+                type: 'empty', 
+                terrain: terrain 
+            };
         }
     }
 }
-initMap();
+initMap()
 
 const neighbors = [
     {q:1, r:0}, {q:1, r:-1}, {q:0, r:-1},
@@ -53,9 +87,13 @@ io.on('connection', (socket) => {
         while(true) {
             let q = Math.floor(Math.random() * (MAP_SIZE * 2)) - MAP_SIZE;
             let r = Math.floor(Math.random() * (MAP_SIZE * 2)) - MAP_SIZE;
-            if(worldMap[`${q},${r}`] && worldMap[`${q},${r}`].owner === null) {
+            let hex = worldMap[`${q},${r}`];
+            
+            // Ensure hex exists, is empty, AND is not water
+            const allowedTerrains = TERRAIN_RULES['capital'];
+            if(hex && hex.owner === null && allowedTerrains.includes(hex.terrain)) {
                 startHex = `${q},${r}`;
-                worldMap[startHex] = { owner: socket.id, type: 'capital', color: color };
+                worldMap[startHex] = { owner: socket.id, type: 'capital', color: color, terrain: hex.terrain };
                 break;
             }
         }
@@ -86,6 +124,12 @@ io.on('connection', (socket) => {
         let res = getPlayerResources(socket.id);
         
         let canBuild = true;
+
+        const allowedTerrains = TERRAIN_RULES[type];
+        if (allowedTerrains && !allowedTerrains.includes(hex.terrain)) {
+            canBuild = false;
+            socket.emit('error', `${type.toUpperCase()} must be built on: ${allowedTerrains.join(', ')}`);
+        }
         if (res.population < res.tiles) {
             canBuild = false
             socket.emit('error', 'Not enough population!'); 
@@ -96,7 +140,9 @@ io.on('connection', (socket) => {
         }
 
         if (canBuild) {
+            // Preserve existing tile properties (like terrain) when claiming
             worldMap[coords] = { 
+                ...worldMap[coords],
                 owner: socket.id, 
                 type: type, 
                 color: player.color 
@@ -118,7 +164,20 @@ io.on('connection', (socket) => {
 
 server.listen(3000, () => console.log('Server running on port 3000'));
 
+function isMoveValid(hexKey, type) {
+    const hex = worldMap[hexKey];
+    if (!hex || hex.owner !== null) return false;
 
+    const allowed = TERRAIN_RULES[type];
+    if (allowed && !allowed.includes(hex.terrain)) return false;
+
+    // Check adjacency
+    const [q, r] = hexKey.split(',').map(Number);
+    return neighbors.some(offset => {
+        const nKey = `${q + offset.q},${r + offset.r}`;
+        return worldMap[nKey] && worldMap[nKey].owner === socket.id;
+    });
+}
 
 function getPlayerResources(playerId) {
     const b = players[playerId].buildings;
