@@ -1,4 +1,4 @@
-import { Resources } from "./resources";
+import { Resources } from "./resources.js";
 
 export class Civilisation {
     private name: string;
@@ -8,7 +8,7 @@ export class Civilisation {
 
     constructor(name: string) {
         this.name = name;
-        this.resources = new Resources(0,0,0,0)
+        this.resources = new Resources(0,0,0,0,0)
         this.populationSize = 0;
         this.armySize = 0;
     }

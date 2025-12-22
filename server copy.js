@@ -36,12 +36,6 @@ function getVisibleTilesFor(playerId) {
     return visible;
 }
 
-function broadcastMapUpdates() {
-    for (const pid in players) {
-        if (pid === BARBARIAN_ID) continue;
-        io.to(pid).emit('mapUpdate', getVisibleTilesFor(pid));
-    }
-}
 
 io.on('connection', (socket) => {
     console.log('User connected:', socket.id);
@@ -52,34 +46,8 @@ io.on('connection', (socket) => {
     socket.emit('waveCountdown', { seconds: barbarianSpawnCountDown, total: BARBARIAN_SPAWN_COUNTDOWN });
 
     socket.on('join', () => {
-        const color = `hsl(${Math.random() * 360}, 70%, 50%)`;
-        players[socket.id] = {
-            color: color,
-            army: 0,
-            buildCountDown: 0,
-            buildings: {
-                capital: 1,
-                farm: 0,
-                mine: 0,
-                market: 0,
-                camp: 0,
-                house: 0,
-                tower: 0
-            },
-            // Stored resource state for the player (updated over time)
-            resources: {
-                population: 5,
-                food: 1,
-                gold: 1,
-                stone: 1
-            }
-        };
-        
         let startHex = "";
         while(true) {
-            let q = Math.floor(Math.random() * (MAP_SIZE * 2)) - MAP_SIZE;
-            let r = Math.floor(Math.random() * (MAP_SIZE * 2)) - MAP_SIZE;
-            let hex = worldMap[`${q},${r}`];
             
             // Ensure hex exists, is empty, AND is not water
             const allowedTerrains = TERRAIN_RULES['capital'];
@@ -273,9 +241,6 @@ io.on('connection', (socket) => {
     }
 });
 
-    socket.on('disconnect', () => {
-        delete players[socket.id];
-    });
 });
 
 

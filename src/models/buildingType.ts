@@ -1,22 +1,22 @@
-import { Resources } from "./resources";
-import { terrainType } from "./terrainTypeEnum";
-import { productionType } from "./productionTypeEnum";
+import { Resources } from "./resources.js";
+import { TerrainType } from "./terrainTypeEnum.js";
+import { ProductionType } from "./productionTypeEnum.js";
 
 class BuildingType {
   private name: string;
   private baseHealthPoints: number;
-  private buildableTerrains: terrainType[];
+  private buildableTerrains: TerrainType[];
   private cost: Resources;
   private production: Resources;
-  private productionType: productionType;
+  private productionType: ProductionType;
 
   constructor (
     name: string,
     baseHealthPoints: number,
-    buildableTerrains: terrainType[],
+    buildableTerrains: TerrainType[],
     cost: Resources,
     production: Resources,
-    productionType: productionType
+    productionType: ProductionType
   ) {
     this.name = name;
     this.baseHealthPoints = baseHealthPoints;
@@ -28,13 +28,22 @@ class BuildingType {
 }
 
 export const BUILDING_TYPES = {
+  CAPITAL: 
+    new BuildingType(
+      "Capital", 
+      200, 
+      [TerrainType.PLAIN, TerrainType.DESERT, TerrainType.MONTAIN, TerrainType.FOREST], 
+      new Resources(1,0,0,0,0), 
+      new Resources(5,0,0,0,0),
+      ProductionType.INSTANTANEOUS
+    ),
   FARM: 
     new BuildingType(
       "Farm", 
       40, 
-      [terrainType.PLAIN], 
+      [TerrainType.PLAIN], 
       new Resources(1,0,0,0,0), 
       new Resources(0,3,0,0,0),
-      productionType.STEADY
+      ProductionType.STEADY
     ),
 };
