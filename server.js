@@ -12,7 +12,7 @@ app.use(express.static('public'));
 const MAP_SIZE = 10;
 const BUILD_COUNTDOWN = 5
 const ARMY_COUNTDOWN = 1; 
-const REBUILD_COUNTDOWN = 3; 
+const REPAIR_COUNTDOWN = 1; 
 const BARBARIAN_SPAWN_COUNTDOWN = 30;
 const BARBARIAN_ATTACK_COUNTDOWN = 2;
 
@@ -30,15 +30,15 @@ const TERRAIN_RULES = {
 };
 
 const BUILDING_HP = {
-    capital: 90,
-    tower: 45,
-    mine: 30,
-    farm: 18,
-    market: 30,
-    camp: 36,
-    house: 18,
+    capital: 150,
+    tower: 100,
+    mine: 40,
+    farm: 40,
+    market: 40,
+    camp: 70,
+    house: 40,
     empty: 0,
-    barbarian_camp: 30
+    barbarian_camp: 40
 };
 // Costs for constructing buildings. 'pop' is population cost, other fields consume resources.
 const BUILDING_COSTS = {
@@ -120,10 +120,64 @@ const neighbors = [
     {q:-1, r:0}, {q:-1, r:1}, {q:0, r:1}
 ];
 
+// Fog-of-war helpers: visibility is 1 tile around owned tiles, except towers which reveal 2 tiles.
+function keysWithinDistance(startKey, distance) {
+    const seen = new Set([startKey]);
+    let frontier = [startKey];
+    for (let d = 0; d < distance; d++) {
+        const next = [];
+        for (const key of frontier) {
+            const [q, r] = key.split(',').map(Number);
+            for (const off of neighbors) {
+                const nk = `${q + off.q},${r + off.r}`;
+                if (!seen.has(nk)) {
+                    seen.add(nk);
+                    next.push(nk);
+                }
+            }
+        }
+        frontier = next;
+    }
+    return seen;
+}
+
+function getVisibleTilesFor(playerId) {
+    const visible = {};
+    const p = players[playerId];
+    if (!p) return visible;
+
+    const ownedKeys = Object.keys(worldMap).filter(k => worldMap[k] && worldMap[k].owner === playerId);
+    const visibleSet = new Set();
+
+    for (const key of ownedKeys) {
+        // always see your own tile and 1 tile around it
+        for (const k of keysWithinDistance(key, 1)) visibleSet.add(k);
+
+        // if this owned tile is a tower, reveal 2 tiles around the tower
+        const h = worldMap[key];
+        if (h && h.type === 'tower') {
+            for (const k of keysWithinDistance(key, 2)) visibleSet.add(k);
+        }
+    }
+
+    for (const k of visibleSet) {
+        if (worldMap[k]) visible[k] = worldMap[k];
+    }
+    return visible;
+}
+
+function broadcastMapUpdates() {
+    for (const pid in players) {
+        if (pid === BARBARIAN_ID) continue;
+        io.to(pid).emit('mapUpdate', getVisibleTilesFor(pid));
+    }
+}
+
 io.on('connection', (socket) => {
     console.log('User connected:', socket.id);
 
-    socket.emit('mapUpdate', worldMap);
+    // Send initial (possibly empty) visible map — the client will send 'join' shortly to get a starting tile
+    io.to(socket.id).emit('mapUpdate', getVisibleTilesFor(socket.id));
     // Send initial wave countdown so clients can display the timer immediately
     socket.emit('waveCountdown', { seconds: barbarianSpawnCountDown, total: BARBARIAN_SPAWN_COUNTDOWN });
 
@@ -172,7 +226,8 @@ io.on('connection', (socket) => {
                 break;
             }
         }
-        io.emit('mapUpdate', worldMap);
+        // Broadcast updated maps (each client will only receive visible tiles)
+        broadcastMapUpdates();
         socket.emit('resourceUpdate', getPlayerResources(socket.id));
         // Send initial ability cooldown state to the new player
         socket.emit('abilityUpdate', { buildCooldown: players[socket.id].buildCountDown || 0, total: BUILD_COUNTDOWN });
@@ -244,7 +299,8 @@ io.on('connection', (socket) => {
 
         updateAreaStats(coords);
 
-        io.emit('mapUpdate', worldMap);
+        // Send only visible tiles to each player
+        broadcastMapUpdates();
         socket.emit('resourceUpdate', getPlayerResources(socket.id));
         player.buildCountDown = BUILD_COUNTDOWN;
         io.to(socket.id).emit('abilityUpdate', { buildCooldown: player.buildCountDown });
@@ -335,7 +391,8 @@ io.on('connection', (socket) => {
         }
     }
 
-    io.emit('mapUpdate', worldMap);
+    // Send updated visible maps to each player
+    broadcastMapUpdates();
 
     // Send resource update (army included) to attacker
     socket.emit('resourceUpdate', getPlayerResources(socket.id));
@@ -420,7 +477,7 @@ function getTowerBonus(coords, ownerId) {
         const nKey = `${q + offset.q},${r + offset.r}`;
         const neighbor = worldMap[nKey];
         if (neighbor && neighbor.type === 'tower' && neighbor.owner === ownerId) {
-            bonus += 5;
+            bonus += 20;
         }
     });
     return bonus;
@@ -455,8 +512,8 @@ setInterval(() => {
                 hex.hp = Math.min(hex.maxHp, hex.hp + 1);
             }
         }
-        io.emit('mapUpdate', worldMap);
-        rebuildCountDown = REBUILD_COUNTDOWN;
+        broadcastMapUpdates();
+        rebuildCountDown = REPAIR_COUNTDOWN;
     }
 
     for (let id in players) {
@@ -468,47 +525,50 @@ setInterval(() => {
     }
 
     if (barbarianSpawnCountDown <= 0) {
-        let spawned = 0;
-        waveNumber++;
         for (let id in players) {
             if (id === BARBARIAN_ID) continue;
+            let spawned = 0;
             
             // Find all player tiles
             const playerTiles = Object.keys(worldMap).filter(key => worldMap[key].owner === id);
             if (playerTiles.length === 0) continue;
 
-            // Pick a random tile and try to spawn a camp in an empty neighbor
-            const randomTile = playerTiles[Math.floor(Math.random() * playerTiles.length)];
-            const [q, r] = randomTile.split(',').map(Number);
-            
-            const validNeighborKeys = neighbors
-                .map(offset => `${q + offset.q},${r + offset.r}`)
-                .filter(nKey => {
+            toSpawn = parseInt(playerTiles.length / 5)
+
+            while (spawned < toSpawn) {
+                
+                // Pick a random tile and try to spawn a camp in an empty neighbor
+                const randomTile = playerTiles[Math.floor(Math.random() * playerTiles.length)];
+                const [q, r] = randomTile.split(',').map(Number);
+                
+                const validNeighborKeys = neighbors
+                    .map(offset => `${q + offset.q},${r + offset.r}`)
+                    .filter(nKey => {
+                        const target = worldMap[nKey];
+                        return target && !target.owner && target.terrain !== 'water';
+                    });
+
+                // 2. If at least one valid spot exists, pick one and spawn
+                if (validNeighborKeys.length > 0) {
+                    const nKey = validNeighborKeys[Math.floor(Math.random() * validNeighborKeys.length)];
                     const target = worldMap[nKey];
-                    return target && !target.owner && target.terrain !== 'water';
-                });
 
-            // 2. If at least one valid spot exists, pick one and spawn
-            if (validNeighborKeys.length > 0) {
-                const nKey = validNeighborKeys[Math.floor(Math.random() * validNeighborKeys.length)];
-                const target = worldMap[nKey];
-
-                worldMap[nKey] = {
-                    ...target,
-                    owner: BARBARIAN_ID,
-                    type: 'barbarian_camp',
-                    color: '#000000',
-                    hp: BUILDING_HP['barbarian_camp'],
-                    maxHp: BUILDING_HP['barbarian_camp']
-                };
-                updateAreaStats(nKey);
-                spawned++;
+                    worldMap[nKey] = {
+                        ...target,
+                        owner: BARBARIAN_ID,
+                        type: 'barbarian_camp',
+                        color: '#000000',
+                        hp: BUILDING_HP['barbarian_camp'],
+                        maxHp: BUILDING_HP['barbarian_camp']
+                    };
+                    updateAreaStats(nKey);
+                    spawned++;
+                }
+                else break;    
             }
+            console.log("to spawn = ", toSpawn, " - spawned ", spawned, " barbarians for player ", id)
         }
-        if (spawned > 0) {
-            io.emit('waveEvent', { wave: waveNumber, spawned: spawned, message: `Barbarian wave ${waveNumber} spawned ${spawned} camp(s)` });
-        }
-        io.emit('mapUpdate', worldMap);
+        broadcastMapUpdates();
         barbarianSpawnCountDown = BARBARIAN_SPAWN_COUNTDOWN;
     }
 
@@ -523,7 +583,7 @@ setInterval(() => {
                     const target = worldMap[nKey];
                     
                     if (target && target.owner && target.owner !== BARBARIAN_ID) {
-                        target.hp -= 1; // Direct damage
+                        target.hp -= 3; // Direct damage
                         if (target.hp <= 0) {
                             // Barbarian captures the tile!
                             const prevOwner = target.owner;
@@ -547,6 +607,8 @@ setInterval(() => {
         for (const pid of affectedPlayers) {
             if (players[pid]) io.to(pid).emit('resourceUpdate', getPlayerResources(pid));
         }
+        // Broadcast updated visible maps to each player
+        broadcastMapUpdates();
         barbarianAttackCountDown = BARBARIAN_ATTACK_COUNTDOWN;
     }
 
