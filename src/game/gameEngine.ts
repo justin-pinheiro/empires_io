@@ -1,81 +1,38 @@
-import { Player } from '../models/player.js';
-import { Civilisation } from '../models/civilisation.js';
-import { Map } from '../models/map.js';
-import { Building } from '../models/building.js';
+import type { BUILDING_STATS } from "../models/buildingData.js";
+import { CommandHandler } from "./commands/commandHandler.js";
+import { PlaceBuildingCommand } from "./commands/placeBuildingCommand.js";
+import { GameState } from "./gameState.js";
 
-import Logger from '../utils/logger.js';
+export class GameEngine {    
+    private gameState: GameState;
+    private commandHandler: CommandHandler;
 
-
-export class GameEngine {
-    private players : Record<string, Player>;
-    private map : Map;
-    
-    constructor(mapSize: number) {
-        this.players = {}
-        this.map = new Map(mapSize);
+    constructor (mapSize: number) {
+        this.gameState = new GameState(mapSize);
+        this.commandHandler = new CommandHandler();
     }
     
-    addPlayer(playerId: string) {
-        const playerCivilisation = new Civilisation(
-            `Civilisation of {id}`
-        )
+    public addPlayer(playerId: string) {
+        this.gameState.addPlayer(playerId);
+    }
+    
+    public removePlayer(playerId: string) {
+        this.gameState.removePlayer(playerId);
+    }
         
-        this.players[playerId] = new Player(
-            playerId,
-            `Player {id}`,
-            playerCivilisation,
-            `hsl(${Math.random() * 360}, 70%, 50%)`,
-            false,
-        )
+    public placeBuilding(playerId: string, buildingType: keyof typeof BUILDING_STATS, tileId: string) {
+        this.commandHandler.handleCommand(
+            new PlaceBuildingCommand(this.gameState, playerId, buildingType, tileId)
+        );
+    }
 
-        Logger.debug("Added player " + playerId + " to players. Player count: " + Object.keys(this.players).length);
-    }
-    
-    removePlayer(id: string) {
-        delete this.players[id];
-    }
-    
-    addBuilding(playerId: string, buildingKey: string, tileKey: string) {
-        const player = this.players[playerId];
-        
-        if (!player) {
-            return; // @TODO throw exception 
-        }
-
-        const building = new Building(buildingKey, playerId);
-
-        if (!this.canAddBuilding(playerId, building, tileKey)) {
-            return;
-        }
-        
-        this.map.setTileBuilding(tileKey, building);
-        player.getCivilisation().addResources(building.getCost())
-    }
-    
-    canAddBuilding(playerId: string, building: Building, tileKey: string) {
-        // check if tile exists and has no building
-        // check if one neighbor of tile is player 
-        // check if player has enough resources and exists
-        return true;
-    }
-    
-    attackTile(id: string, tileKey: any, troopsCount: any) {
-        throw new Error('Method not implemented.');
-    }
-    
-    getVisibleTileKeysForPlayer(id: string): any {
-        return this.map.getAllTilesAsObject();
+    public getVisibleTileKeysForPlayer(playerId: string): any {
+        return this.gameState.getMap().getAllTilesAsObject();
     }
 
     setPlayerCapital(playerId: string) {
-        const tileId = this.map.getRandomTileId();
-        
-        if (!tileId) {
-            throw new Error('No tile available to set as capital');
-        }
-
-        this.addBuilding(playerId, "CAPITAL", tileId);
-
-        Logger.debug("Generated capital for player " + playerId + " on tile " + tileId)
+        const tileId = this.gameState.getMap().getRandomTileId();
+        if (!tileId) throw new Error('No tile available to set as capital');
+        this.gameState.addBuilding(playerId, "CAPITAL", tileId);
     }
 }

@@ -27,6 +27,10 @@ export class Tile {
       this.building = building;
     }
 
+    hasBuilding() {
+      return this.building != null;
+    }
+
     setNeighbors(neighborsIds : string[]) {
       this.neighborsIds = neighborsIds;
     }

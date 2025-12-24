@@ -1,7 +1,8 @@
 import { Server, Socket } from 'socket.io';
-import { GameEngine } from '../game/gameEngine.js';
+import { CommandHandler } from '../game/commands/commandHandler.js';
 
 import Logger from '../utils/logger.js';
+import type { GameEngine } from '../game/gameEngine.js';
 
 const socketsIds : string[] = [];
 
@@ -25,12 +26,7 @@ export const setupSocketHandlers = (io: Server, game: GameEngine) => {
         });
         
         socket.on('build', ( { tileKey, buildingTypeKey } ) => {
-            game.addBuilding(socket.id, buildingTypeKey, tileKey);
-            broadcastMapUpdates(io, game);
-        });
-
-        socket.on('attack', ( { tileKey, troopsCount } ) => {
-            game.attackTile(socket.id, tileKey, troopsCount);
+            game.placeBuilding(socket.id, buildingTypeKey, tileKey);
             broadcastMapUpdates(io, game);
         });
     });

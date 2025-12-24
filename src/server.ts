@@ -1,7 +1,7 @@
 import express from 'express';
 import { createServer } from 'http';
 import { Server } from 'socket.io';
-import { GameEngine } from './game/gameEngine.js';
+import { CommandHandler } from './game/commands/commandHandler.js';
 import { setupSocketHandlers } from './sockets/socketHandler.js';
 import { env } from './config/env.js';
 
@@ -9,7 +9,7 @@ const app = express();
 const httpServer = createServer(app);
 const io = new Server(httpServer);
 
-const game = new GameEngine(10);
+const game = new CommandHandler(10);
 
 setupSocketHandlers(io, game);
 

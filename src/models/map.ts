@@ -71,6 +71,10 @@ export class Map {
         return neighborsFound;
     }
 
+    getTile(tileId: string) {
+        return this.tiles[tileId];
+    }
+
     /**
     * Retrieves a random tile id from all tiles.
     * @returns {string} Random tile id.

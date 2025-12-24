@@ -13,6 +13,16 @@ export class Resources {
         this.science = science;
     }
     
+    serialize() {
+        return {
+            population: this.population,
+            food: this.population,
+            gold: this.population,
+            stone: this.population,
+            science: this.science,
+        }
+    }
+
     getPopulation() {
         return this.population;
     }
@@ -29,15 +39,29 @@ export class Resources {
         return this.science;
     }
     
-    /* 
-    * Adds resources to current resources. 
-    * If resources are negative, they will be substracted.
-    */
-    addResources(resources: Resources) {
+    add(resources: Resources) {
         this.population += resources.getPopulation();
         this.food += resources.getFood();
         this.gold += resources.getGold();
         this.stone += resources.getStone();
         this.science += resources.getScience();
+    }
+
+    substract(resources: Resources) {
+        this.population += resources.getPopulation();
+        this.food += resources.getFood();
+        this.gold += resources.getGold();
+        this.stone += resources.getStone();
+        this.science += resources.getScience();
+    }
+    
+    superiorOrEqualTo(resources: Resources) : boolean {
+        return (
+            this.population >= resources.getPopulation() &&
+            this.food >= resources.getFood() &&
+            this.gold >= resources.getGold() &&
+            this.stone >= resources.getStone() &&
+            this.science >= resources.getScience()
+        )
     }
 }
