@@ -5,7 +5,7 @@ const ctx = canvas.getContext('2d');
 let worldMap = {};
 let myId = null;
 let currentBuildType = 'farm';
-let sendCount = 1; // number of troops to send on attack (1 / 10 / 50)
+let sendCount = 1;   // number of troops to send on attack (1 / 10 / 50)
 const HEX_SIZE = 30;
 
 const BUILDING_ICONS = {};
@@ -16,14 +16,6 @@ iconNames.forEach(name => {
     img.src = `/buildings/${name}.png`;
     BUILDING_ICONS[name] = img;
 });
-
-const TERRAIN_COLORS = {
-    water: '#2b65ec2f',
-    desert: '#edc9af35',
-    plains: '#7efc0031',
-    mountain: '#572b0c31',
-    forest: '#228b222f'
-};
 
 // Client-side terrain/build rules (kept in sync with server)
 const TERRAIN_RULES = {
@@ -201,9 +193,11 @@ function render() {
 
         const hex = worldMap[key];
 
+        console.log(hex)
+
         // 1. Draw terrain fill for the whole hex so colors are visible
         if (hex.terrain) {
-            ctx.fillStyle = TERRAIN_COLORS[hex.terrain] || '#333';
+            ctx.fillStyle = hex.terrain.color || '#333';
             ctx.beginPath();
             for (let i = 0; i < 6; i++) {
                 const angle = (Math.PI / 3) * i;

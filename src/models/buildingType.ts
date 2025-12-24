@@ -32,7 +32,7 @@ export const BUILDING_TYPES = {
     new BuildingType(
       "Capital", 
       200, 
-      [TerrainType.PLAIN, TerrainType.DESERT, TerrainType.MONTAIN, TerrainType.FOREST], 
+      [TerrainType.PLAIN, TerrainType.DESERT, TerrainType.MOUNTAIN, TerrainType.FOREST], 
       new Resources(1,0,0,0,0), 
       new Resources(5,0,0,0,0),
       ProductionType.INSTANTANEOUS

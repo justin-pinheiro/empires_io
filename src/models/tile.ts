@@ -1,5 +1,5 @@
 import { Building } from "./building.js";
-import { TerrainType } from "./terrainTypeEnum.js";
+import { TERRAIN_DATA, TerrainType } from "./terrainTypeEnum.js";
 
 export class Tile {
   private id: string;
@@ -37,7 +37,7 @@ export class Tile {
         x: this.x,
         y: this.y,
         neighbors: this.neighborsIds,
-        terrain: this.terrainType,
+        terrain: TERRAIN_DATA[this.terrainType],
         building: this.building ? this.building.serialize() : null,
         // legacy fields expected by frontend (defaults until game logic fills them)
         owner: null,

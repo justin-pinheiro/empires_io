@@ -3,6 +3,7 @@ import { createServer } from 'http';
 import { Server } from 'socket.io';
 import { GameEngine } from './game/gameEngine.js';
 import { setupSocketHandlers } from './sockets/socketHandler.js';
+import { env } from './config/env.js';
 
 const app = express();
 const httpServer = createServer(app);
@@ -14,6 +15,6 @@ setupSocketHandlers(io, game);
 
 app.use(express.static('public'));
 
-httpServer.listen(3000, () => {
+httpServer.listen(env.PORT, () => {
     console.log('Server running on http://localhost:3000');
 });

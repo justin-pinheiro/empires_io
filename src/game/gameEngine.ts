@@ -3,6 +3,9 @@ import { Civilisation } from '../models/civilisation.js';
 import { Map } from '../models/map.js';
 import { Building } from '../models/building.js';
 
+import Logger from '../utils/logger.js';
+
+
 export class GameEngine {
     private players : Record<string, Player>;
     private map : Map;
@@ -29,17 +32,21 @@ export class GameEngine {
     removePlayer(id: string) {
         delete this.players[id];
     }
-
+    
     addBuilding(playerId: string, building: Building, tileKey: string) {
         const player = this.players[playerId];
-
+        
         if (!player) {
             return; // @TODO throw exception 
         }
         
         this.map.setTileBuilding(tileKey, building);
     }
-
+    
+    attackTile(id: string, tileKey: any, troopsCount: any) {
+        throw new Error('Method not implemented.');
+    }
+    
     getVisibleTileKeysForPlayer(id: string): any {
         return this.map.getAllTilesAsObject();
     }

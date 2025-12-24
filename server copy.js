@@ -10,62 +10,10 @@ BARBARIAN_ID = 'BARBARIAN_NPC';
 
 
 
-
-function getVisibleTilesFor(playerId) {
-    const visible = {};
-    const p = players[playerId];
-    if (!p) return visible;
-
-    const ownedKeys = Object.keys(worldMap).filter(k => worldMap[k] && worldMap[k].owner === playerId);
-    const visibleSet = new Set();
-
-    for (const key of ownedKeys) {
-        // always see your own tile and 1 tile around it
-        for (const k of keysWithinDistance(key, 1)) visibleSet.add(k);
-
-        // if this owned tile is a tower, reveal 2 tiles around the tower
-        const h = worldMap[key];
-        if (h && h.type === 'tower') {
-            for (const k of keysWithinDistance(key, 2)) visibleSet.add(k);
-        }
-    }
-
-    for (const k of visibleSet) {
-        if (worldMap[k]) visible[k] = worldMap[k];
-    }
-    return visible;
-}
-
-
 io.on('connection', (socket) => {
-    console.log('User connected:', socket.id);
-
-    // Send initial (possibly empty) visible map — the client will send 'join' shortly to get a starting tile
-    io.to(socket.id).emit('mapUpdate', getVisibleTilesFor(socket.id));
-    // Send initial wave countdown so clients can display the timer immediately
     socket.emit('waveCountdown', { seconds: barbarianSpawnCountDown, total: BARBARIAN_SPAWN_COUNTDOWN });
 
     socket.on('join', () => {
-        let startHex = "";
-        while(true) {
-            
-            // Ensure hex exists, is empty, AND is not water
-            const allowedTerrains = TERRAIN_RULES['capital'];
-            if(hex && hex.owner === null && allowedTerrains.includes(hex.terrain)) {
-                startHex = `${q},${r}`;
-                worldMap[startHex] = { 
-                    ...worldMap[startHex],
-                    owner: socket.id, 
-                    type: 'capital', 
-                    color: color, 
-                    hp: BUILDING_HP['capital'],
-                    maxHp: BUILDING_HP['capital']
-                };
-                break;
-            }
-        }
-        // Broadcast updated maps (each client will only receive visible tiles)
-        broadcastMapUpdates();
         socket.emit('resourceUpdate', getPlayerResources(socket.id));
         // Send initial ability cooldown state to the new player
         socket.emit('abilityUpdate', { buildCooldown: players[socket.id].buildCountDown || 0, total: BUILD_COUNTDOWN });
@@ -145,101 +93,101 @@ io.on('connection', (socket) => {
     });
 
     socket.on('attack', (data) => {
-    const attacker = players[socket.id];
-    if (!attacker) return; // invalid player
+        const attacker = players[socket.id];
+        if (!attacker) return; // invalid player
 
-    // Support old format (string) and new format { coords, count }
-    let coords = null;
-    let count = 1;
-    if (typeof data === 'string') coords = data;
-    else if (data && data.coords) {
-        coords = data.coords;
-        count = Number(data.count) || 1;
-    }
-
-    const hex = worldMap[coords];
-
-    // Basic validations
-    if (!hex || !hex.owner) return; // nothing to attack
-    if (hex.owner === socket.id) return; // can't attack self
-
-    // Must be adjacent to one of your tiles to attack
-    const [q, r] = coords.split(',').map(Number);
-    const canReach = neighbors.some(offset => {
-        const nKey = `${q + offset.q},${r + offset.r}`;
-        return worldMap[nKey] && worldMap[nKey].owner === socket.id;
-    });
-    if (!canReach) {
-        socket.emit('error', 'Target not in reach (must be adjacent to your territory).');
-        return;
-    }
-
-    // Must have enough army
-    if (attacker.army < count) {
-        socket.emit('error', `Not enough army to send ${count} troops!`);
-        return;
-    }
-
-    // Spend the armies for the assault
-    attacker.army -= count;
-
-    const damage = count; // Each troop deals 1 damage; sending more deals proportionally more damage
-
-    let prevOwner = hex.owner;
-    hex.hp = (typeof hex.hp === 'number' ? hex.hp : (BUILDING_HP[hex.type] || 0)) - damage;
-
-    // If destroyed -> capture and adjust building counts
-    let capturedPrevOwner = null;
-    if (hex.hp <= 0) {
-        if (prevOwner === BARBARIAN_ID) {
-            // Player defeated a Barbarian Camp -> Clear the tile
-            worldMap[coords] = {
-                ...worldMap[coords],
-                owner: null,
-                type: 'empty',
-                hp: 0,
-                maxHp: 0
-            };
-            updateAreaStats(coords);
-        } 
-        else {
-            const prevType = hex.type || 'empty';
-            const reward = REWARD[hex.type] || { pop: 0, food: 0, gold: 0, stone: 0 };
-
-            players[prevOwner].buildings[prevType]--;
-            players[prevOwner].resources.population -= reward.pop;
-
-            // get reward
-            attacker.resources.population += (reward.pop || 0);
-            attacker.resources.food += (reward.food || 0);
-            attacker.resources.gold += (reward.gold || 0);
-            attacker.resources.stone += (reward.stone || 0);
-
-            hex.owner = socket.id;
-            hex.color = attacker.color;
-            hex.hp = BUILDING_HP[hex.type];
-            hex.maxHp = BUILDING_HP[hex.type];
-
-            // Increment attacker's building count
-            attacker.buildings[hex.type] = (attacker.buildings[hex.type] || 0) + 1;
-
-            capturedPrevOwner = prevOwner;
-
-            updateAreaStats(coords);
+        // Support old format (string) and new format { coords, count }
+        let coords = null;
+        let count = 1;
+        if (typeof data === 'string') coords = data;
+        else if (data && data.coords) {
+            coords = data.coords;
+            count = Number(data.count) || 1;
         }
-    }
 
-    // Send updated visible maps to each player
-    broadcastMapUpdates();
+        const hex = worldMap[coords];
 
-    // Send resource update (army included) to attacker
-    socket.emit('resourceUpdate', getPlayerResources(socket.id));
+        // Basic validations
+        if (!hex || !hex.owner) return; // nothing to attack
+        if (hex.owner === socket.id) return; // can't attack self
 
-    // If we captured something, notify the previous owner (if connected)
-    if (capturedPrevOwner && players[capturedPrevOwner]) {
-        io.to(capturedPrevOwner).emit('resourceUpdate', getPlayerResources(capturedPrevOwner));
-    }
-});
+        // Must be adjacent to one of your tiles to attack
+        const [q, r] = coords.split(',').map(Number);
+        const canReach = neighbors.some(offset => {
+            const nKey = `${q + offset.q},${r + offset.r}`;
+            return worldMap[nKey] && worldMap[nKey].owner === socket.id;
+        });
+        if (!canReach) {
+            socket.emit('error', 'Target not in reach (must be adjacent to your territory).');
+            return;
+        }
+
+        // Must have enough army
+        if (attacker.army < count) {
+            socket.emit('error', `Not enough army to send ${count} troops!`);
+            return;
+        }
+
+        // Spend the armies for the assault
+        attacker.army -= count;
+
+        const damage = count; // Each troop deals 1 damage; sending more deals proportionally more damage
+
+        let prevOwner = hex.owner;
+        hex.hp = (typeof hex.hp === 'number' ? hex.hp : (BUILDING_HP[hex.type] || 0)) - damage;
+
+        // If destroyed -> capture and adjust building counts
+        let capturedPrevOwner = null;
+        if (hex.hp <= 0) {
+            if (prevOwner === BARBARIAN_ID) {
+                // Player defeated a Barbarian Camp -> Clear the tile
+                worldMap[coords] = {
+                    ...worldMap[coords],
+                    owner: null,
+                    type: 'empty',
+                    hp: 0,
+                    maxHp: 0
+                };
+                updateAreaStats(coords);
+            } 
+            else {
+                const prevType = hex.type || 'empty';
+                const reward = REWARD[hex.type] || { pop: 0, food: 0, gold: 0, stone: 0 };
+
+                players[prevOwner].buildings[prevType]--;
+                players[prevOwner].resources.population -= reward.pop;
+
+                // get reward
+                attacker.resources.population += (reward.pop || 0);
+                attacker.resources.food += (reward.food || 0);
+                attacker.resources.gold += (reward.gold || 0);
+                attacker.resources.stone += (reward.stone || 0);
+
+                hex.owner = socket.id;
+                hex.color = attacker.color;
+                hex.hp = BUILDING_HP[hex.type];
+                hex.maxHp = BUILDING_HP[hex.type];
+
+                // Increment attacker's building count
+                attacker.buildings[hex.type] = (attacker.buildings[hex.type] || 0) + 1;
+
+                capturedPrevOwner = prevOwner;
+
+                updateAreaStats(coords);
+            }
+        }
+
+        // Send updated visible maps to each player
+        broadcastMapUpdates();
+
+        // Send resource update (army included) to attacker
+        socket.emit('resourceUpdate', getPlayerResources(socket.id));
+
+        // If we captured something, notify the previous owner (if connected)
+        if (capturedPrevOwner && players[capturedPrevOwner]) {
+            io.to(capturedPrevOwner).emit('resourceUpdate', getPlayerResources(capturedPrevOwner));
+        }
+    });
 
 });
 
