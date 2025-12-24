@@ -24,18 +24,6 @@ io.on('connection', (socket) => {
         const player = players[socket.id];
         if (!player) return;
 
-        // 1. Basic checks (existence, adjacency, ownership)
-        const hex = worldMap[coords];
-        if (!hex || hex.owner !== null || player.buildCountDown > 0) return;
-        
-        // Frontier Rule: Check if any neighbor belongs to player
-        const [q, r] = coords.split(',').map(Number);
-        const isAdjacent = neighbors.some(offset => {
-            const nKey = `${q + offset.q},${r + offset.r}`;
-            return worldMap[nKey] && worldMap[nKey].owner === socket.id;
-        });
-        if (!isAdjacent) return;
-
         // 2. Resource Validation Logic (now using stored resources)
         const allowedTerrains = TERRAIN_RULES[type];
         if (allowedTerrains && !allowedTerrains.includes(hex.terrain)) {
@@ -65,23 +53,6 @@ io.on('connection', (socket) => {
             socket.emit('error', 'Not enough resources!');
             return;
         }
-
-        // Deduct costs
-        player.resources.population -= (cost.pop || 0);
-        player.resources.food -= (cost.food || 0);
-        player.resources.gold -= (cost.gold || 0);
-        player.resources.stone -= (cost.stone || 0);
-
-        // Apply building and set HP
-        player.buildings[type] = (player.buildings[type] || 0) + 1;
-        worldMap[coords] = { 
-            ...worldMap[coords],
-            owner: socket.id, 
-            type: type, 
-            color: player.color ,
-            hp: BUILDING_HP[type],
-            maxHp: BUILDING_HP[type]
-        };
 
         updateAreaStats(coords);
 
@@ -190,76 +161,6 @@ io.on('connection', (socket) => {
     });
 
 });
-
-
-
-function isMoveValid(hexKey, type) {
-    const hex = worldMap[hexKey];
-    if (!hex || hex.owner !== null) return false;
-
-    const allowed = TERRAIN_RULES[type];
-    if (allowed && !allowed.includes(hex.terrain)) return false;
-
-    // Check adjacency
-    const [q, r] = hexKey.split(',').map(Number);
-    return neighbors.some(offset => {
-        const nKey = `${q + offset.q},${r + offset.r}`;
-        return worldMap[nKey] && worldMap[nKey].owner === socket.id;
-    });
-}
-
-function getPlayerResources(playerId) {
-    const p = players[playerId];
-    if (!p) return {};
-
-    const b = p.buildings;
-    const stored = p.resources || { population: 0, food: 0, gold: 0, stone: 0 };
-
-    const resources = {
-        population: stored.population,
-        food: stored.food,
-        gold: stored.gold,
-        stone: stored.stone,
-        military: (b.capital * 5) + (b.camp * 5),
-        army: p.army,
-        tiles: Object.values(b).reduce((a, c) => a + c, 0),
-    };
-    return resources;
-}
-
-function refreshTileStats(coords) {
-    const hex = worldMap[coords];
-    if (!hex || !hex.owner) return;
-    
-    const baseHp = BUILDING_HP[hex.type] || 0;
-    const bonus = getTowerBonus(coords, hex.owner);
-    
-    hex.maxHp = baseHp + bonus;
-    hex.hp = hex.hp + bonus;
-    // Keep current HP from exceeding new max
-    if (hex.hp > hex.maxHp) hex.hp = hex.maxHp; 
-}
-
-function updateAreaStats(coords) {
-    refreshTileStats(coords); // Update the tile itself
-    const [q, r] = coords.split(',').map(Number);
-    neighbors.forEach(offset => { // Update all neighbors
-        refreshTileStats(`${q + offset.q},${r + offset.r}`);
-    });
-}
-
-function getTowerBonus(coords, ownerId) {
-    const [q, r] = coords.split(',').map(Number);
-    let bonus = 0;
-    neighbors.forEach(offset => {
-        const nKey = `${q + offset.q},${r + offset.r}`;
-        const neighbor = worldMap[nKey];
-        if (neighbor && neighbor.type === 'tower' && neighbor.owner === ownerId) {
-            bonus += 20;
-        }
-    });
-    return bonus;
-}
 
 setInterval(() => {
     armyCountDown--;

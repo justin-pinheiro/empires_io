@@ -4,7 +4,7 @@ const ctx = canvas.getContext('2d');
 
 let worldMap = {};
 let myId = null;
-let currentBuildType = 'farm';
+let currentBuildType = 'FARM';
 let sendCount = 1;   // number of troops to send on attack (1 / 10 / 50)
 const HEX_SIZE = 30;
 
@@ -14,7 +14,7 @@ const iconNames = ['farm', 'market', 'mine', 'house', 'camp', 'tower', 'capital'
 iconNames.forEach(name => {
     const img = new Image();
     img.src = `/buildings/${name}.png`;
-    BUILDING_ICONS[name] = img;
+    BUILDING_ICONS[name.toUpperCase()] = img;
 });
 
 // Client-side terrain/build rules (kept in sync with server)
@@ -135,7 +135,7 @@ canvas.addEventListener('click', (e) => {
         currentBuildType = null;
     } else if (!hex.owner && currentBuildType) {
         // BUILD: If no one owns it
-        socket.emit('build', { coords: hexKey, type: currentBuildType });
+        socket.emit('build', { hexKey, currentBuildType });
         document.querySelectorAll('.build-btn').forEach(btn => {
             btn.classList.remove('active');
         });
@@ -192,8 +192,6 @@ function render() {
         if (px < -offset || px > canvas.width + offset || py < -offset || py > canvas.height + offset) continue;
 
         const hex = worldMap[key];
-
-        console.log(hex)
 
         // 1. Draw terrain fill for the whole hex so colors are visible
         if (hex.terrain) {
@@ -266,7 +264,8 @@ function render() {
             ctx.fill();
             ctx.globalAlpha = 1.0;
 
-            const icon = BUILDING_ICONS[hex.type];
+            const icon = BUILDING_ICONS[hex.building.type];
+            console.log("icon exists : " + icon)
             if (icon && icon.complete && zoom > 0.4) {
                 const iconSize = dynamicSize * 0.8;
                 ctx.drawImage(icon, px - iconSize / 2, py - iconSize / 2, iconSize, iconSize);

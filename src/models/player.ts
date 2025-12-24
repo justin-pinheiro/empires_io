@@ -20,4 +20,8 @@ export class Player {
         this.color = color;
         this.isNPC = isNPC;
     }
+
+    getCivilisation() {
+        return this.civilisation;
+    }
 }

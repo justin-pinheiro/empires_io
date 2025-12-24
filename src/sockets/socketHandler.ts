@@ -1,28 +1,31 @@
 import { Server, Socket } from 'socket.io';
 import { GameEngine } from '../game/gameEngine.js';
-import { Building } from '../models/building.js';
+
+import Logger from '../utils/logger.js';
 
 const socketsIds : string[] = [];
 
 export const setupSocketHandlers = (io: Server, game: GameEngine) => {
     io.on('connection', (socket: Socket) => {
-        socketsIds.push(socket.id);
-        console.log('User connected:', socket.id);
+        Logger.info('User connected: ' + socket.id);
         broadcastMapUpdates(io, game);
-
+        
         socket.on('join', () => { 
+            Logger.info('User joined: ' + socket.id);
+            socketsIds.push(socket.id)
             game.addPlayer(socket.id);
             game.setPlayerCapital(socket.id);
             broadcastMapUpdates(io, game);
         });
         
         socket.on('disconnect', () => {
+            Logger.info('User disconnected: ' + socket.id);
+            socketsIds.splice(socketsIds.indexOf("element"), 1);
             game.removePlayer(socket.id);
         });
         
-        socket.on('build', ( { tileKey, buildingTypeKey } ) => { 
-            const building = new Building(buildingTypeKey);
-            game.addBuilding(socket.id, building, tileKey);
+        socket.on('build', ( { tileKey, buildingTypeKey } ) => {
+            game.addBuilding(socket.id, buildingTypeKey, tileKey);
             broadcastMapUpdates(io, game);
         });
 

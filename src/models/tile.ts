@@ -39,12 +39,6 @@ export class Tile {
         neighbors: this.neighborsIds,
         terrain: TERRAIN_DATA[this.terrainType],
         building: this.building ? this.building.serialize() : null,
-        // legacy fields expected by frontend (defaults until game logic fills them)
-        owner: null,
-        type: 'empty',
-        color: null,
-        hp: 0,
-        maxHp: 0
       };
     }
 }

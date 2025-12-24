@@ -24,4 +24,12 @@ export class Civilisation {
     getArmySize() {
         return this.armySize;
     }
+    
+    /* 
+    * Adds resources to current resources. 
+    * If resources are negative, they will be substracted.
+    */
+    addResources(resources: Resources) {
+        this.resources.addResources(resources)
+    }
 }

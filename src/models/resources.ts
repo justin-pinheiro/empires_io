@@ -12,7 +12,7 @@ export class Resources {
         this.stone = stone;
         this.science = science;
     }
-
+    
     getPopulation() {
         return this.population;
     }
@@ -27,5 +27,17 @@ export class Resources {
     }
     getScience() {
         return this.science;
+    }
+    
+    /* 
+    * Adds resources to current resources. 
+    * If resources are negative, they will be substracted.
+    */
+    addResources(resources: Resources) {
+        this.population += resources.getPopulation();
+        this.food += resources.getFood();
+        this.gold += resources.getGold();
+        this.stone += resources.getStone();
+        this.science += resources.getScience();
     }
 }

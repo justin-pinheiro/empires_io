@@ -1,20 +1,46 @@
-export class Building {
-  private buildingTypeKey : string;
-  private level: number;
+import { BUILDING_STATS } from "./buildingData.js";
 
-  constructor(buildingTypeKey : string) {
-    this.buildingTypeKey = buildingTypeKey;
-    this.level = 1;
+export class Building {
+  public currentHealth: number;
+  public ownerId: string;
+
+  constructor(
+    public readonly typeKey: keyof typeof BUILDING_STATS,
+    ownerId: string
+  ) {
+    this.currentHealth = this.stats.baseHealth;
+    this.ownerId = ownerId;
   }
 
-  getType() {
-    return this.buildingTypeKey;
+  get stats() {
+    const stats =  BUILDING_STATS[this.typeKey];
+    if (!stats) {
+      throw new Error(`Building stats for key "${this.typeKey}" not found.`);
+    }
+    return stats;
+  }
+
+  takeDamage(amount: number) {
+    this.currentHealth = Math.max(0, this.currentHealth - amount);
+  }
+
+  getCost() {
+    return this.stats.cost;
+  }
+
+  getOwnerId() {
+    return this.ownerId;
   }
 
   serialize() {
     return {
-      type: this.buildingTypeKey,
-      level: this.level
+      name: this.stats.name,
+      type: this.typeKey,
+      health: {
+        current: this.currentHealth,
+        max: this.stats.baseHealth,
+      },
+      owner: this.ownerId,
     };
   }
 }
