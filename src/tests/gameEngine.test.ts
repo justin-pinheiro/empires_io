@@ -20,7 +20,7 @@ describe('GameEngine Production System', () => {
         const player = engine.getPlayer(playerId);
         const resources = player?.getCivilisation().getResources();
 
-        expect(resources?.getPopulation()).toBe(0); 
+        expect(player?.getCivilisation().getPopulationCapacity()).toBe(0); 
         expect(resources?.getFood()).toBe(0); 
         expect(resources?.getGold()).toBe(0); 
         expect(resources?.getStone()).toBe(0); 
@@ -33,9 +33,8 @@ describe('GameEngine Production System', () => {
         engine = new GameEngine(state, commandHandler);
 
         const player = engine.getPlayer(playerId);
-        const resources = player?.getCivilisation().getResources();
         engine.setPlayerCapital(playerId, "0,0");
-        expect(resources?.getPopulation()).toBeGreaterThan(0);
+        expect(player?.getCivilisation().getPopulationCapacity()).toBeGreaterThan(0);
     });
 
     it('should increase food when farm is set', () => {

@@ -17,7 +17,7 @@ export class PlaceBuildingCommand implements ICommand {
     const stats = BUILDING_STATS[this.buildingType];
     if (!stats) return "Invalid building type.";
 
-    if (!player.getCivilisation().getResources().superiorOrEqualTo(stats.cost)) {
+    if (!player.getCivilisation().getResources().superiorOrEqualTo(stats.resourcesCost)) {
         return "Insufficient resources to build " + stats.name;
     }
 

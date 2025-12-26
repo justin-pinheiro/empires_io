@@ -26,16 +26,28 @@ export class Building {
     this.currentHealth = Math.max(0, this.currentHealth - amount);
   }
   
-  getCost() {
-    return this.stats.cost;
+  repair(amount: number) {
+    this.currentHealth = Math.min(this.currentHealth + amount, this.stats.baseHealth);
+  }
+
+  getResourcesCost() {
+    return this.stats.resourcesCost;
+  }
+  
+  getPopulationCost() {
+    return this.stats.populationCost;
+  }
+  
+  getArmyCapacityUpgrade() {
+    return this.stats.armyCapacityUpgrade;
+  }
+  
+  getPopulationCapacityUpgrade() {
+    return this.stats.populationCapacityUpgrade;
   }
   
   getOwnerId(): string {
     return this.ownerId;
-  }
-  
-  hasSteadyProduction(): boolean {
-    return this.stats.productionType === ProductionType.STEADY;
   }
   
   getProduction(dt: number): Resources {
@@ -44,11 +56,11 @@ export class Building {
     }
     else {
       return new Resources(
-        this.stats.production.getPopulation() * this.stats.productionRate * dt,
         this.stats.production.getFood() * this.stats.productionRate * dt,
         this.stats.production.getGold() * this.stats.productionRate * dt,
         this.stats.production.getStone() * this.stats.productionRate * dt,
         this.stats.production.getScience() * this.stats.productionRate * dt,
+        this.stats.production.getArmy() * this.stats.productionRate * dt,
       )
     }
   }

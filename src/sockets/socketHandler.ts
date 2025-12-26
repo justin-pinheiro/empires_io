@@ -1,5 +1,4 @@
 import { Server, Socket } from 'socket.io';
-import { CommandHandler } from '../game/commands/commandHandler.js';
 
 import Logger from '../utils/logger.js';
 import type { GameEngine } from '../game/gameEngine.js';
@@ -30,11 +29,32 @@ export const setupSocketHandlers = (io: Server, game: GameEngine) => {
             game.placeBuilding(socket.id, buildingTypeKey, tileKey);
             broadcastMapUpdates(io, game);
         });
+
+        game.on('resourcesUpdate', () => {
+            updatePlayers(io, game);
+        });
+
+        game.on('buildingsUpdate', () => {
+            updateBuildings(io, game);
+        });
     });
 };
 
 function broadcastMapUpdates(io: Server, game: GameEngine) {
     for (const id of socketsIds) {
         io.to(id).emit('mapUpdate', game.getVisibleTileKeysForPlayer(id));
+    }
+}
+
+function updatePlayers(io: Server, game: GameEngine) {
+    for (const id of socketsIds) {
+        const player = game.getPlayer(id);
+        io.to(id).emit('resourcesUpdate', player?.getCivilisation().getResources().serialize());
+    }
+}
+
+function updateBuildings(io: Server, game: GameEngine) {
+    for (const id of socketsIds) {
+        io.to(id).emit('buildingsUpdate', game.getVisibleBuildingsForPlayer(id));
     }
 }

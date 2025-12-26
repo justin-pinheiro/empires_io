@@ -163,46 +163,6 @@ io.on('connection', (socket) => {
 });
 
 setInterval(() => {
-    armyCountDown--;
-    rebuildCountDown--;
-    barbarianAttackCountDown--;
-    barbarianSpawnCountDown--;
-
-    if (armyCountDown <= 0)
-    {
-        for (let id in players) {
-            const player = players[id];
-            const res = getPlayerResources(id);
-            
-            if (player.army < res.military) {
-                player.army += 1 + player.buildings.camp;
-                
-                const updatedResources = { ...res, army: player.army };
-                io.to(id).emit('resourceUpdate', updatedResources);
-            }
-        }
-        armyCountDown = ARMY_COUNTDOWN;
-    }
-
-    if (rebuildCountDown <= 0) {
-        for (let key in worldMap) {
-            const hex = worldMap[key];
-            if (hex.owner && hex.hp < hex.maxHp) {
-                hex.hp = Math.min(hex.maxHp, hex.hp + 1);
-            }
-        }
-        broadcastMapUpdates();
-        rebuildCountDown = REPAIR_COUNTDOWN;
-    }
-
-    for (let id in players) {
-        if (players[id].buildCountDown > 0) {
-            players[id].buildCountDown --;
-            // Send ability update so client can show cooldown
-            io.to(id).emit('abilityUpdate', { buildCooldown: players[id].buildCountDown });
-        }
-    }
-
     if (barbarianSpawnCountDown <= 0) {
         for (let id in players) {
             if (id === BARBARIAN_ID) continue;

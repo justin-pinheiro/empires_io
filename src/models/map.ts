@@ -133,13 +133,7 @@ export class Map {
         
     }
 
-    getAllTilesAsObject() {
-        const out: Record<string, any> = {};
-        for (const key of Object.keys(this.tiles)) {
-            if (this.tiles[key]) {
-                out[key] = this.tiles[key].serialize();
-            }
-        }
-        return out;
+    getAllTileIds() {
+        return Object.keys(this.tiles);
     }
 }

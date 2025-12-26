@@ -6,12 +6,16 @@ import { setupSocketHandlers } from './sockets/socketHandler.js';
 import { env } from './config/env.js';
 import { GCProfiler } from 'v8';
 import { GameEngine } from './game/gameEngine.js';
+import { GameState } from './game/gameState.js';
 
 const app = express();
 const httpServer = createServer(app);
 const io = new Server(httpServer);
 
-const game = new GameEngine(10);
+const commandHandler = new CommandHandler();
+const gameState = new GameState(10);
+
+const game = new GameEngine(gameState, commandHandler);
 game.start();
 
 setupSocketHandlers(io, game);
