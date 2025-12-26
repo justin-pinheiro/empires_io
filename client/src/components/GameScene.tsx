@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Map } from './Map';
+import { MapView } from './MapView';
 import { HUD } from './HUD';
 import { socket } from '../socket';
 
@@ -18,7 +18,7 @@ export const GameScene: React.FC = () => {
   return (
     <div style={{ width: '100vw', height: '100vh', background: '#000' }}>
       <HUD resources={resources} />
-      <Map />
+      <MapView />
     </div>
   );
 };
