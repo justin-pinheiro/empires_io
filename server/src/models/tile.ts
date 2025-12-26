@@ -1,41 +1,56 @@
-import { Building } from "./building.js";
 import { TERRAIN_DATA, TerrainType } from "./terrainTypeEnum.js";
 
+/**
+ * Represents a single hexagonal or square unit on the game map.
+ */
 export class Tile {
-  private id: string;
-  private x: number;
-  private y: number;
-  private neighborsIds: string[];
-  private terrainType: TerrainType;
-
   constructor(
-    id: string, 
-    x: number, 
-    y: number, 
-    neighborsIds: string[], 
-    terrainType: TerrainType) {
-      this.id = id;
-      this.x = x;
-      this.y = y;
-      this.neighborsIds = neighborsIds;
-      this.terrainType = terrainType;
-    }
+    private readonly id: string,
+    private readonly x: number,
+    private readonly y: number,
+    private terrainType: TerrainType,
+    private neighborsIds: string[] = []
+  ) {}
 
-    getTerrainType() {
-      return this.terrainType;
-    }
+  // --- Getters ---
 
-    setNeighbors(neighborsIds : string[]) {
-      this.neighborsIds = neighborsIds;
-    }
+  public getId(): string { return this.id; }
+  public getCoords() { return { x: this.x, y: this.y }; }
+  public getTerrainType(): TerrainType { return this.terrainType; }
+  public getNeighbors(): string[] { return [...this.neighborsIds]; }
 
-    serialize() {
-      return {
-        id: this.id,
-        x: this.x,
-        y: this.y,
-        neighbors: this.neighborsIds,
-        terrain: TERRAIN_DATA[this.terrainType]
-      };
+  // --- Methods ---
+
+  /**
+   * Updates the terrain of the tile.
+   */
+  public setTerrainType(type: TerrainType): void {
+    this.terrainType = type;
+  }
+
+  /**
+   * Safely adds a neighbor ID if it's not already present.
+   */
+  public addNeighbor(neighborId: string): void {
+    if (!this.neighborsIds.includes(neighborId)) {
+      this.neighborsIds.push(neighborId);
     }
+  }
+
+  /**
+   * Prepares the tile for network transmission or database storage.
+   */
+  public serialize() {
+    return {
+      id: this.id,
+      x: this.x,
+      y: this.y,
+      neighbors: this.neighborsIds,
+      terrain: TERRAIN_DATA[this.terrainType]
+    };
+  }
+
+  public toJSON() {
+    return this.serialize();
+  }
 }

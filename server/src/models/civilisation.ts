@@ -1,49 +1,58 @@
 import { Resources } from "./resources.js";
 
+/**
+ * Manages the state, economy, and population metrics of a player's civilization.
+ */
 export class Civilisation {
-    private name: string;
     private resources: Resources;
-    private populationCapacity: number;
-    private armyCapacity: number;
-    private workingPopulation: number;
+    private populationCapacity: number = 0;
+    private armyCapacity: number = 0;
+    private workingPopulation: number = 0;
 
-    constructor(name: string) {
-        this.name = name;
-        this.resources = new Resources(0, 0, 0, 0, 0);
-        this.populationCapacity = 0;
-        this.workingPopulation = 0;
-        this.armyCapacity = 0;
+    constructor(private readonly name: string) {
+        this.resources = Resources.zero();
     }
 
-    getPopulationCapacity() {
-        return this.populationCapacity;
+    // --- Getters ---
+
+    public getName(): string { return this.name; }
+    public getPopulationCapacity(): number { return this.populationCapacity; }
+    public getWorkingPopulation(): number { return this.workingPopulation; }
+    public getArmyCapacity(): number { return this.armyCapacity; }
+
+    /**
+     * Returns a copy of the resources to prevent external direct mutation.
+     */
+    public getResources(): Resources {
+        const r = this.resources;
+        return new Resources(r.getFood(), r.getGold(), r.getStone(), r.getScience(), r.getArmy());
+    }
+    // --- Population Logic ---
+
+    /**
+     * Adjusts the working population. 
+     * Includes a check to ensure it doesn't drop below zero or exceed capacity.
+     */
+    public updateWorkingPopulation(amount: number): void {
+        const nextPop = this.workingPopulation + amount;
+        this.workingPopulation = Math.max(0, Math.min(nextPop, this.populationCapacity));
     }
 
-    getWorkingPopulation() {
-        return this.workingPopulation;
+    public updatePopulationCapacity(amount: number): void {
+        this.populationCapacity = Math.max(0, this.populationCapacity + amount);
     }
 
-    getArmyCapacity() {
-        this.armyCapacity;
+    public updateArmyCapacity(amount: number): void {
+        this.armyCapacity = Math.max(0, this.armyCapacity + amount);
     }
 
-    getName() {
-        return this.name;
-    }
-
-    getResources() {
-        return this.resources;
-    }
-
-    updateArmyCapacity(amount: number) {
-        this.armyCapacity += amount;
-    }
-
-    updateWorkingPopulation(amount: number) {
-        this.workingPopulation += amount;
-    }
-
-    updatePopulationCapacity(amount: number) {
-        this.populationCapacity += amount;
-    }
+    public serialize() {
+        return {
+            name: this.name,
+            resources: this.resources.serialize(),
+            populationCapacity: this.populationCapacity,
+            workingPopulation: this.workingPopulation,
+            armyCapacity: this.armyCapacity
+        }
+    };
 }

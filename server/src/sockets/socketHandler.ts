@@ -8,11 +8,12 @@ const socketsIds : string[] = [];
 export const setupSocketHandlers = (io: Server, game: GameEngine) => {
     io.on('connection', (socket: Socket) => {
         Logger.info('User connected: ' + socket.id);
-        broadcastMapUpdates(io, game);
         
         socket.on('join', () => { 
             Logger.info('User joined: ' + socket.id);
-            socketsIds.push(socket.id)
+            if (!socketsIds.includes(socket.id)) {
+                socketsIds.push(socket.id);
+            }
             game.addPlayer(socket.id);
             const tileId = game.getCapitalLocation();
             game.setPlayerCapital(socket.id, tileId);
@@ -21,7 +22,8 @@ export const setupSocketHandlers = (io: Server, game: GameEngine) => {
         
         socket.on('disconnect', () => {
             Logger.info('User disconnected: ' + socket.id);
-            socketsIds.splice(socketsIds.indexOf("element"), 1);
+            const index = socketsIds.indexOf(socket.id);
+            if (index !== -1) socketsIds.splice(index, 1);
             game.removePlayer(socket.id);
         });
         
@@ -34,32 +36,26 @@ export const setupSocketHandlers = (io: Server, game: GameEngine) => {
             game.attackBuilding(socket.id, tileKey, troopCount);
             broadcastMapUpdates(io, game);
         });
+    });
 
-        game.on('resourcesUpdate', () => {
-            updatePlayers(io, game);
-        });
+    game.on('resourcesUpdate', () => {
+        for (const id of socketsIds) {
+            const player = game.getPlayer(id);
+            io.to(id).emit('resourcesUpdate', player?.getCivilisation().getResources().serialize());
+        }
+    });
 
-        game.on('buildingsUpdate', () => {
-            updateBuildings(io, game);
+    game.on('buildingsUpdate', () => {
+        socketsIds.forEach(id => {
+            io.to(id).emit('buildingsUpdate', game.getVisibleBuildingsForPlayer(id));
         });
     });
 };
 
 function broadcastMapUpdates(io: Server, game: GameEngine) {
+    Logger.debug(`Broadcasting map updates for ${socketsIds.length} sockets`);
     for (const id of socketsIds) {
-        io.to(id).emit('mapUpdate', game.getVisibleTileKeysForPlayer(id));
-    }
-}
-
-function updatePlayers(io: Server, game: GameEngine) {
-    for (const id of socketsIds) {
-        const player = game.getPlayer(id);
-        io.to(id).emit('resourcesUpdate', player?.getCivilisation().getResources().serialize());
-    }
-}
-
-function updateBuildings(io: Server, game: GameEngine) {
-    for (const id of socketsIds) {
-        io.to(id).emit('buildingsUpdate', game.getVisibleBuildingsForPlayer(id));
+        const tiles = game.getVisibleTilesForPlayer(id);
+        io.to(id).emit('mapUpdate', tiles);
     }
 }

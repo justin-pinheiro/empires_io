@@ -59,6 +59,16 @@ export class GameEngine extends EventEmitter {
         return this.state.getMap().getAllTileIds();
     }
     
+    public getVisibleTilesForPlayer(playerId: string): Array<object> {
+        const keys = this.getVisibleTileKeysForPlayer(playerId);
+        let tiles: Array<object> = []
+        keys.forEach(key => {
+            const tile = this.state.getMap().getTile(key)?.serialize();
+            if (tile) tiles.push(tile)
+        });
+        return tiles;
+    }
+
     public getVisibleBuildingsForPlayer(playerId: string): Array<Building> {
         const visibleTileIds = this.getVisibleTileKeysForPlayer(playerId);
         let buildings: Array<Building> = []

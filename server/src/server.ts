@@ -4,13 +4,17 @@ import { Server } from 'socket.io';
 import { CommandHandler } from './game/commands/commandHandler.js';
 import { setupSocketHandlers } from './sockets/socketHandler.js';
 import { env } from './config/env.js';
-import { GCProfiler } from 'v8';
 import { GameEngine } from './game/gameEngine.js';
 import { GameState } from './game/gameState.js';
 
 const app = express();
 const httpServer = createServer(app);
-const io = new Server(httpServer);
+const io = new Server(httpServer, {
+  cors: {
+    origin: "http://localhost:5173",
+    methods: ["GET", "POST"]
+  }
+});
 
 const commandHandler = new CommandHandler();
 const gameState = new GameState(10);

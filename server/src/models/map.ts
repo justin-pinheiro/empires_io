@@ -2,138 +2,96 @@ import { Tile } from "./tile.js";
 import { getRandomTerrainType } from "./terrainTypeEnum.js";
 import { Building } from "./building.js";
 
-export class Map {
-    private tiles : Record<string, Tile>;
-    private buildings : Record<string, Building>;
-    
+export class GameMap {
+    private readonly tiles: Map<string, Tile> = new Map();
+    private readonly buildings: Map<string, Building> = new Map();
+
     constructor(size: number) {
-        this.tiles = this.generateHexagonalTiles(size);
-        this.buildings = {};
+        this.generateHexagonalTiles(size);
         this.linkNeighbors();
     }
-    
+
     /**
-     * Generates tiles objects in an hexagonal shape.
-     * @param {string} size - How large the generate tiles map should be.
-     * @return {Record<string, Tile>} tiles generated.
-    */
-   generateHexagonalTiles(size: number): Record<string, Tile> {
-        let tempTiles: Record<string, Tile> = {}; // Use a local variable
+     * Generates a hexagonal grid using Axial Coordinates (q, r).
+     */
+    private generateHexagonalTiles(size: number): void {
+        for (let q = -size; q <= size; q++) {
+        const r1 = Math.max(-size, -q - size);
+        const r2 = Math.min(size, -q + size);
+
+        for (let r = r1; r <= r2; r++) {
+            const id = this.getCoordKey(q, r);
+            this.tiles.set(id, new Tile(id, q, r, getRandomTerrainType(), []));
+        }
+        }
+    }
+
+    /**
+     * Helper to ensure consistent coordinate key formatting.
+     */
+    private getCoordKey(q: number, r: number): string {
+        return `${q},${r}`;
+    }
+
+    private linkNeighbors(): void {
+        for (const [id, tile] of this.tiles) {
+            const neighborIds = this.calculateNeighborIds(id);
+            neighborIds.forEach(neighborId => {
+                tile.addNeighbor(neighborId);
+            });
+        }
+    }
+
+    /**
+     * Standard Axial hex neighbor offsets.
+     */
+    private calculateNeighborIds(tileId: string): string[] {
+        const parts = tileId.split(',');
+        const q = Number(parts[0]);
+        const r = Number(parts[1]);
+        const neighbors: string[] = [];
         
-        for (let x = -size; x <= size; x++) {
-            let y1 = Math.max(-size, -x - size);
-            let y2 = Math.min(size, -x + size);
-            
-            for (let y = y1; y <= y2; y++) {
-                const coordKey = `${x},${y}`;
-                // Create tile without neighbors for now
-                tempTiles[coordKey] = new Tile(coordKey, x, y, [], getRandomTerrainType());
+        // The 6 directions in a hex grid
+        const directions: [number, number][] = [
+            [1, 0], [1, -1], [0, -1],
+            [-1, 0], [-1, 1], [0, 1]
+        ];
+
+        for (const [dq, dr] of directions) {
+            const targetId = this.getCoordKey((q + dq), (r + dr));
+            if (this.tiles.has(targetId)) {
+                neighbors.push(targetId);
             }
         }
-        return tempTiles;
-    }
-    
-    private linkNeighbors() {
-        // Now 'this.tiles' is fully populated, we can safely find neighbors
-        for (const tileId in this.tiles) {
-            const neighborIds = this.getNeighborsIds(tileId, 1);
-            
-            if (this.tiles[tileId]) {
-                this.tiles[tileId].setNeighbors(neighborIds);
-            }
-        }
-    }
-    
-    /**
-     * Retrieves neighboring tile ids within a certain distance.
-     * @param {string} tileId - The "x,z" coordinate string.
-     * @param {number} distance - How many rings out to search (default 1).
-     * @returns {string[]} Array of found tile ids.
-    */
-   getNeighborsIds(tileId: string, distance: number = 1) {
-       const [startXStr, startZStr] = tileId.split(',');
-       const startX = Number(startXStr);
-       const startZ = Number(startZStr);
-       const neighborsFound: string[] = [];
-       
-       for (let dx = -distance; dx <= distance; dx++) {
-           for (let dz = Math.max(-distance, -dx - distance); dz <= Math.min(distance, -dx + distance); dz++) {
-               if (dx === 0 && dz === 0) continue;
-               
-               const targetX = startX + dx;
-               const targetZ = startZ + dz;
-               const targetId = `${targetX},${targetZ}`;
-               
-               if (this.tiles[targetId]) {
-                   neighborsFound.push(targetId);
-                }
-            }
-        }
-
-        return neighborsFound;
-    }
-    
-    getTile(tileId: string) {
-        return this.tiles[tileId];
-    }
-    
-    /**
-     * Retrieves a random tile id from all tiles.
-     * @returns {string} Random tile id.
-    */
-   getRandomTileId(): string {
-        const tileKeys = Object.keys(this.tiles);
-        const tile = null;
-    
-        do {
-            const randomKeyIndex = Math.floor(Math.random() * tileKeys.length);
-            const tile = tileKeys[randomKeyIndex];
-        } while (!tile)
-
-        return tile;
-    }
-    
-    setBuilding(tileKey: string, building: Building) {
-        const tile = this.tiles[tileKey];
-        if (!tile) {
-            throw new Error(`Tile ${tileKey} not found`);
-        }
-        this.buildings[tileKey] = building;
-    }
-    
-    removeBuilding(tileKey: string) {
-        const tile = this.tiles[tileKey];
-        if (!tile) {
-            throw new Error(`Tile ${tileKey} not found`);
-        }
-        delete this.buildings[tileKey];
+        return neighbors;
     }
 
-    tileHasBuilding(tileKey: string) {
-      return this.buildings[tileKey] != null;
-    }
-    
-    getBuilding(tileKey: string) {
-        return this.buildings[tileKey];
+    // --- Building Management ---
+
+    public setBuilding(tileKey: string, building: Building): void {
+        if (!this.tiles.has(tileKey)) throw new Error(`Tile ${tileKey} does not exist.`);
+        this.buildings.set(tileKey, building);
     }
 
-    getAllBuildings() {
-        return Object.values(this.buildings);
+    public removeBuilding(tileKey: string): void {
+        this.buildings.delete(tileKey);
     }
 
-    getBuildingsCount() {
-        return Object.values(this.buildings).length;
+    public getBuilding(tileKey: string): Building | undefined {
+        return this.buildings.get(tileKey);
     }
 
-    getAllTileKeys() {
-        if (!this.tiles) {
-            throw Error("this.tiles does not exist.")
-        }
-        return Object.keys(this.tiles);
-        
+    // --- Getters ---
+
+    public getTile(id: string): Tile | undefined {
+        return this.tiles.get(id);
     }
 
-    getAllTileIds() {
-        return Object.keys(this.tiles);
+    public getAllTileIds(): string[] {
+        return Array.from(this.tiles.keys());
+    }
+
+    public getBuildingsCount(): number {
+        return this.buildings.size;
     }
 }

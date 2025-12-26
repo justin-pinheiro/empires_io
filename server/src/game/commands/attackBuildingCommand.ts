@@ -42,7 +42,7 @@ export class AttackBuildingCommand implements ICommand {
 	}
 
 	execute(): void {
-		this.gameState.getPlayer(this.attackerId)?.getCivilisation().getResources().substract(
+		this.gameState.getPlayer(this.attackerId)?.getCivilisation().getResources().subtract(
 			new Resources(0,0,0,0,this.troopCount)
 		)
 		const building = this.gameState.getBuilding(this.tileId)

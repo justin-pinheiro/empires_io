@@ -1,27 +1,49 @@
 import { Civilisation } from "./civilisation.js";
 
+/**
+ * Represents a human or AI entity in the game world.
+ */
 export class Player {
-    private id: string;
-    private name: string;
-    private civilisation: Civilisation;
-    private color: string;
-    private isNPC: boolean;
-
     constructor(
-        id: string,
-        name: string, 
-        civilisation: Civilisation,
-        color: string,
-        isNPC: boolean
+        private readonly id: string,
+        private readonly name: string,
+        private readonly civilisation: Civilisation,
+        private readonly color: string,
+        private readonly isNPC: boolean = false
     ) {
-        this.id = id;
-        this.name = name;
-        this.civilisation = civilisation;
-        this.color = color;
-        this.isNPC = isNPC;
+        this.validateColor(color);
     }
 
-    getCivilisation() {
-        return this.civilisation;
+    // --- Getters ---
+    public getId() { return this.id; }
+    public getName() { return this.name; }
+    public getCivilisation() { return this.civilisation; }
+    public getColor() { return this.color; }
+    public getIsNPC() { return this.isNPC; }
+
+    // --- Validation ---
+    private validateColor(color: string) {
+        const hexRegex = /^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/;
+        if (!hexRegex.test(color)) {
+        throw new Error(`Invalid color format: ${color}. Expected Hex code.`);
+        }
+    }
+
+    /**
+     * Serializes the player state.
+     * This nests the civilisation's own serialization logic.
+     */
+    public serialize() {
+        return {
+        id: this.id,
+        name: this.name,
+        color: this.color,
+        isNPC: this.isNPC,
+        civilisation: this.civilisation.serialize(),
+        };
+    }
+
+    public toJSON() {
+        return this.serialize();
     }
 }
