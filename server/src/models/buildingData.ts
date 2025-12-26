@@ -103,4 +103,15 @@ export const BUILDING_STATS: Record<string, BuildingStats> = {
     production: new Resources(0, 0, 0, 0, 0),
     productionRate: 0
   },
+  BARBARIAN_CAMP: {
+    name: "Barbarian Camp",
+    baseHealth: 30,
+    buildableTerrains: [TerrainType.PLAIN, TerrainType.FOREST, TerrainType.DESERT, TerrainType.MOUNTAIN],
+    populationCost: 0,
+    resourcesCost: new Resources(0, 0, 0, 0, 0),
+    armyCapacityUpgrade: 0,
+    populationCapacityUpgrade: 0,
+    production: new Resources(0, 0, 0, 0, 0),
+    productionRate: 0
+  },
 };

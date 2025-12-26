@@ -7,17 +7,21 @@ import { GameState } from "./gameState.js";
 import type { Building } from "../models/building.js";
 import type { Tile } from "../models/tile.js";
 import { AttackBuildingCommand } from "./commands/attackBuildingCommand.js";
+import { BarbarianManager } from "./barbarians/barbarianManager.js";
+import Logger from "../utils/logger.js";
 
 export class GameEngine extends EventEmitter {
     private state: GameState;
     private commandHandler: CommandHandler;
     private loop: GameLoop;
+    private barbarianManager: BarbarianManager;
     
     constructor (state: GameState, commandHandler: CommandHandler) {
         super();
         this.state = state;
         this.commandHandler = commandHandler;
         this.loop = new GameLoop(this.update.bind(this), 1);
+        this.barbarianManager = new BarbarianManager(this.state, this);
     }
     
     public start(): void {
@@ -25,7 +29,9 @@ export class GameEngine extends EventEmitter {
     }
     
     update(dt: number) {
+        Logger.debug("Updating game")
         this.state.updatePlayersResources(dt);
+        this.barbarianManager.update(dt);
         this.emit('resourcesUpdate');
     }
     

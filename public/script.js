@@ -5,7 +5,7 @@ const ctx = canvas.getContext('2d');
 let worldMap = {};
 let myId = null;
 let currentBuildType = 'FARM';
-let sendCount = 1;   // number of troops to send on attack (1 / 10 / 50)
+let sendCount = 1; 
 const HEX_SIZE = 30;
 
 const BUILDING_ICONS = {};
@@ -16,22 +16,6 @@ iconNames.forEach(name => {
     img.src = `/buildings/${name}.png`;
     BUILDING_ICONS[name.toUpperCase()] = img;
 });
-
-// Client-side terrain/build rules (kept in sync with server)
-const TERRAIN_RULES = {
-    farm:   ['plains', 'forest'],
-    mine:   ['mountain', 'desert'],
-    market: ['plains', 'desert'],
-    house:  ['plains', 'forest', 'desert'],
-    camp:   ['plains', 'forest', 'desert'],
-    tower:  ['plains', 'forest', 'desert'],
-    capital:['plains', 'forest', 'desert']
-};
-
-const NEIGHBORS = [
-    {q:1, r:0}, {q:1, r:-1}, {q:0, r:-1},
-    {q:-1, r:0}, {q:-1, r:1}, {q:0, r:1}
-];
 
 // Camera State
 let camX = window.innerWidth / 2;
@@ -127,15 +111,15 @@ canvas.addEventListener('click', (e) => {
     if (!hex) return;
 
     if (hex.owner && hex.owner !== socket.id) {
-        // ATTACK: If someone else owns it, send selected troop count
-        socket.emit('attack', { coords: hexKey, count: sendCount });
+        // ATTACK: server expects { tileKey, troopCount }
+        socket.emit('attack', { tileKey: hexKey, troopCount: sendCount });
         document.querySelectorAll('.build-btn').forEach(btn => {
             btn.classList.remove('active');
         });
         currentBuildType = null;
     } else if (!hex.owner && currentBuildType) {
-        // BUILD: If no one owns it
-        socket.emit('build', { hexKey, currentBuildType });
+        // BUILD: server expects { tileKey, buildingTypeKey }
+        socket.emit('build', { tileKey: hexKey, buildingTypeKey: currentBuildType });
         document.querySelectorAll('.build-btn').forEach(btn => {
             btn.classList.remove('active');
         });
@@ -264,8 +248,7 @@ function render() {
             ctx.fill();
             ctx.globalAlpha = 1.0;
 
-            const icon = BUILDING_ICONS[hex.building.type];
-            console.log("icon exists : " + icon)
+            const icon = hex.building ? BUILDING_ICONS[hex.building.type] : null;
             if (icon && icon.complete && zoom > 0.4) {
                 const iconSize = dynamicSize * 0.8;
                 ctx.drawImage(icon, px - iconSize / 2, py - iconSize / 2, iconSize, iconSize);
@@ -291,11 +274,33 @@ function render() {
 // --- SOCKETS ---
 
 socket.on('mapUpdate', (data) => {
-    worldMap = data;
+    console.log('mapUpdate received, type:', Array.isArray(data) ? 'array' : typeof data, data?.length ?? 'n/a');
+
+    // Server now sends either an object map or an array of tile ids.
+    // Be tolerant: if we receive an array of ids, build minimal tile objects locally.
+    if (Array.isArray(data)) {
+        const newMap = {};
+        for (const id of data) {
+            newMap[id] = worldMap[id] && typeof worldMap[id] === 'object' ? worldMap[id] : {
+                id,
+                terrain: { name: 'Plain', color: '#2ecc71' },
+                owner: null,
+                building: null,
+                hp: 0,
+                maxHp: 0
+            };
+        }
+        worldMap = newMap;
+    }
+    else if (data && typeof data === 'object') {
+        // older format (object map) — accept as-is
+        worldMap = data;
+    }
     needsRedraw = true;
 });
 
 socket.on('waveCountdown', (data) => {
+    // legacy: some servers may not send these anymore — keep handler for compatibility
     const secs = data.seconds ?? 0;
     const total = data.total ?? 15;
     if (waveTimerEl) waveTimerEl.innerText = `${secs}s`;
@@ -308,6 +313,7 @@ socket.on('waveEvent', (data) => {
 });
 
 socket.on('abilityUpdate', (data) => {
+    // legacy / compatibility: server may later add build cooldown info
     const secs = data.buildCooldown || 0;
     const total = data.total ?? 5;
     if (secs > 0) {
@@ -321,47 +327,55 @@ socket.on('abilityUpdate', (data) => {
     if (buildBarFill) buildBarFill.style.width = `${Math.round(100 * (1 - secs / total))}%`;
 });
 
-socket.on('resourceUpdate', (data) => {
+socket.on('resourcesUpdate', (data) => {
+    console.log('resourcesUpdate:', data);
+    // Updated server now emits 'resourcesUpdate' with serialized Resources: { food, gold, stone, science, army }
     const setIfExists = (id, val) => { const el = document.getElementById(id); if (el) el.innerText = val; };
-    setIfExists('foodVal', data.food);
-    setIfExists('goldVal', data.gold);
-    setIfExists('stoneVal', data.stone);
-    setIfExists('tilesVal', data.tiles);
-    setIfExists('populationVal', data.population);
-    setIfExists('militaryVal', data.military);
-    setIfExists('armyVal', data.army);
+    setIfExists('foodVal', data?.food ?? 0);
+    setIfExists('goldVal', data?.gold ?? 0);
+    setIfExists('stoneVal', data?.stone ?? 0);
+    setIfExists('scienceVal', data?.science ?? 0);
+    setIfExists('armyVal', data?.army ?? 0);
+});
+
+socket.on('buildingsUpdate', (data) => {
+    // Server sends an array of building-like objects. If they include a tile id (tileKey/tileId) we map them to tiles.
+    if (!Array.isArray(data)) return;
+
+    // Clear existing building info
+    for (const k in worldMap) {
+        worldMap[k].building = null;
+        worldMap[k].owner = null;
+        worldMap[k].hp = 0;
+        worldMap[k].maxHp = 0;
+    }
+
+    data.forEach(b => {
+        const tileKey = b.tileKey || b.tileId || b.id || b.tile;
+        if (tileKey && worldMap[tileKey]) {
+            const type = (b.type || b.typeKey || b.name || '').toString().toUpperCase();
+            worldMap[tileKey].owner = b.owner || b.ownerId || null;
+            worldMap[tileKey].building = { type };
+            worldMap[tileKey].hp = b.health?.current ?? b.currentHealth ?? 0;
+            worldMap[tileKey].maxHp = b.health?.max ?? b.maxHp ?? ((b.stats?.baseHealth ?? worldMap[tileKey].maxHp) || 0);
+        }
+        else {
+            console.warn('buildingsUpdate: item missing tile id or tile not visible', b);
+        }
+    });
+
+    needsRedraw = true;
 });
 
 socket.on('connect', () => {
     // Save our socket id locally so client-side validation can know which tiles belong to us
     myId = socket.id;
-    socket.emit('join'); // Automatically join on connection
+    socket.emit('join');
+    console.log("%c🔌 Connected to Server", "ID:", myId);
 });
 
 socket.on('error', (msg) => showMessage(msg));
 
-// Client-side quick validity check used for hover UI (mirrors server-side rules enough for display)
-function isBuildableTerrain(hexKey, type) {
-    const hex = worldMap[hexKey];
-    if (!hex || hex.owner !== null) return false;
-
-    const allowed = TERRAIN_RULES[type];
-    if (allowed && !allowed.includes(hex.terrain)) return false;
-
-    if (!myId) return false; // not connected / haven't joined yet
-
-    return isTileNeighbor(hexKey)
-}
-
-function isTileNeighbor(hexKey) {
-    const [q, r] = hexKey.split(',').map(Number);
-    return NEIGHBORS.some(offset => {
-        const nKey = `${q + offset.q},${r + offset.r}`;
-        return worldMap[nKey] && worldMap[nKey].owner === myId;
-    });
-}
-
-requestAnimationFrame(gameLoop);
 
 function setBuildType(buttonElement, type) {
     currentBuildType = type;

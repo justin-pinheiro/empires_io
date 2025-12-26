@@ -7,16 +7,17 @@
         canvas { display: block; }
         #ui { position: absolute; top: 10px; left: 10px; color: white; pointer-events: none; }
     </style>
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self' http://localhost:3000; script-src 'self' 'unsafe-eval' 'unsafe-inline'; style-src 'self' 'unsafe-inline';">
 </head>
 <body>
     <div id="ui-overlay">
         <div class="top-center-group">
             <div id="resources-panel">
-                Tiles: <span id="tilesVal">0</span>/<span id="populationVal">0</span> |
-                Food: <span id="foodVal">0</span> | 
-                Gold: <span id="goldVal">0</span> | 
-                Stone: <span id="stoneVal">0</span> | 
-                Army: <span id="armyVal">0</span>/<span id="militaryVal">0</span>
+                Food: <span id="foodVal">0</span> |
+                Gold: <span id="goldVal">0</span> |
+                Stone: <span id="stoneVal">0</span> |
+                Science: <span id="scienceVal">0</span> |
+                Army: <span id="armyVal">0</span>
             </div>
             
             <div id="wave-panel">
