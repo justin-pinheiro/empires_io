@@ -19,6 +19,10 @@ export class Civilisation {
         return this.populationCapacity;
     }
 
+    getWorkingPopulation() {
+        return this.workingPopulation;
+    }
+
     getArmyCapacity() {
         this.armyCapacity;
     }

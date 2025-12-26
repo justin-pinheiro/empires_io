@@ -21,6 +21,10 @@ export class Tile {
       this.terrainType = terrainType;
     }
 
+    getTerrainType() {
+      return this.terrainType;
+    }
+
     setNeighbors(neighborsIds : string[]) {
       this.neighborsIds = neighborsIds;
     }

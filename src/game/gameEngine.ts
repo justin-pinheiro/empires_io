@@ -6,6 +6,7 @@ import { GameLoop } from "./gameLoop.js";
 import { GameState } from "./gameState.js";
 import type { Building } from "../models/building.js";
 import type { Tile } from "../models/tile.js";
+import { AttackBuildingCommand } from "./commands/attackBuildingCommand.js";
 
 export class GameEngine extends EventEmitter {
     private state: GameState;
@@ -42,6 +43,12 @@ export class GameEngine extends EventEmitter {
         );
     }
     
+    public attackBuilding(playerId: string, tileId: string, troopCount: number) {
+        this.commandHandler.handleCommand(
+            new AttackBuildingCommand(this.state, playerId, tileId, troopCount)
+        );
+    }
+    
     public getVisibleTileKeysForPlayer(playerId: string): Array<string> {
         return this.state.getMap().getAllTileIds();
     }
@@ -50,7 +57,8 @@ export class GameEngine extends EventEmitter {
         const visibleTileIds = this.getVisibleTileKeysForPlayer(playerId);
         let buildings: Array<Building> = []
         visibleTileIds.forEach(tile => {
-            buildings.push(this.state.getBuilding(tile))
+            const building = this.state.getBuilding(tile)
+            if (building) buildings.push(building)
         });
         return buildings;
     }

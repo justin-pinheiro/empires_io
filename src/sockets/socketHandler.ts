@@ -30,6 +30,11 @@ export const setupSocketHandlers = (io: Server, game: GameEngine) => {
             broadcastMapUpdates(io, game);
         });
 
+        socket.on('attack', ( { tileKey, troopCount } ) => {
+            game.attackBuilding(socket.id, tileKey, troopCount);
+            broadcastMapUpdates(io, game);
+        });
+
         game.on('resourcesUpdate', () => {
             updatePlayers(io, game);
         });

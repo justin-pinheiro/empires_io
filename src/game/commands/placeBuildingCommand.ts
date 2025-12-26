@@ -1,3 +1,4 @@
+import { stat } from "node:fs";
 import { BUILDING_STATS } from "../../models/buildingData.js";
 import type { ICommand } from "../../utils/ICommand.js";
 import type { GameState } from "../gameState.js";
@@ -12,19 +13,34 @@ export class PlaceBuildingCommand implements ICommand {
 
   validate(): string | null {
     const player = this.gameState.getPlayer(this.playerId);
-    if (!player) return "Player does not exist.";
+    if (!player) return "Player " + this.playerId + " does not exist.";
 
     const stats = BUILDING_STATS[this.buildingType];
-    if (!stats) return "Invalid building type.";
+    if (!stats) return "Invalid building type : " + this.tileId + ".";
 
     if (!player.getCivilisation().getResources().superiorOrEqualTo(stats.resourcesCost)) {
         return "Insufficient resources to build " + stats.name;
     }
 
+    const availablePopulation = player.getCivilisation().getPopulationCapacity() - player.getCivilisation().getWorkingPopulation();
+    if (availablePopulation <= 0) {
+        return "Insufficient population to build " + stats.name;
+    }
+
     const map = this.gameState.getMap()
     const tile = map.getTile(this.tileId)
-    if (tile && map.tileHasBuilding(this.tileId)) {
+
+    if (!tile) {
+      return "Tile " + this.tileId +  " does not exist."
+    }
+
+    if (map.tileHasBuilding(this.tileId)) {
         return "Tile is already occupied.";
+    }
+
+    const terrain = tile.getTerrainType()
+    if (!(terrain in stats.buildableTerrains)) {
+      return "Cannot build " + stats.name + " on terrain type " + terrain + ". Allowed : " + stats.buildableTerrains;
     }
 
     return null;

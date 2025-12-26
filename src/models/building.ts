@@ -3,8 +3,8 @@ import { ProductionType } from "./productionTypeEnum.js";
 import { Resources } from "./resources.js";
 
 export class Building {
-  public currentHealth: number;
-  public ownerId: string;
+  private currentHealth: number;
+  private ownerId: string;
   
   constructor(
     public readonly typeKey: keyof typeof BUILDING_STATS,
@@ -22,6 +22,10 @@ export class Building {
     return stats;
   }
   
+  isDestroyed() {
+    return this.currentHealth <= 0;
+  }
+
   takeDamage(amount: number) {
     this.currentHealth = Math.max(0, this.currentHealth - amount);
   }

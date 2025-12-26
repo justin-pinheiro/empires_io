@@ -22,7 +22,7 @@ export class GameState {
         
         buildings.forEach(building => {
             const production = building.getProduction(dt);
-            const owner = building.ownerId;
+            const owner = building.getOwnerId();
             this.addResourcesToPlayer(owner, production);
         });
     }
@@ -54,12 +54,22 @@ export class GameState {
         this.players[playerId]?.getCivilisation().updatePopulationCapacity(building.getPopulationCapacityUpgrade());
     }
 
-    getBuilding(tileId: string): any {
-        return this.map.getBuilding(tileId);
+    getBuilding(tileId: string): Building | null {
+        const building = this.map.getBuilding(tileId)
+        if (building) return building;
+        else return null;
     }
     
     public removeBuilding(tileId: string) {
+        const building = this.map.getBuilding(tileId)
+        if (!building) throw Error("No building found on tile " + tileId);
+        
+        const playerId = building.getOwnerId();
+        this.players[playerId]?.getCivilisation().updateArmyCapacity(-building.getArmyCapacityUpgrade());
+        this.players[playerId]?.getCivilisation().updateWorkingPopulation(-building.getPopulationCost());
+        this.players[playerId]?.getCivilisation().updatePopulationCapacity(-building.getPopulationCapacityUpgrade());
         this.map.removeBuilding(tileId);
+        
     }
     
     public addPlayer(playerId: string) {
