@@ -9,6 +9,7 @@ export interface BuildingStats {
   cost: Resources;
   production: Resources;
   productionType: ProductionType;
+  productionRate: number | null;
 }
 
 export const BUILDING_STATS: Record<string, BuildingStats> = {
@@ -19,13 +20,15 @@ export const BUILDING_STATS: Record<string, BuildingStats> = {
     cost: new Resources(1, 0, 0, 0, 0),
     production: new Resources(5, 0, 0, 0, 0),
     productionType: ProductionType.INSTANTANEOUS,
+    productionRate: null
   },
   FARM: {
     name: "Farm",
     baseHealth: 40,
     buildableTerrains: [TerrainType.PLAIN],
     cost: new Resources(1, 0, 0, 0, 0),
-    production: new Resources(0, 3, 0, 0, 0),
+    production: new Resources(0, 1, 0, 0, 0),
     productionType: ProductionType.STEADY,
+    productionRate: 0.4
   },
 };

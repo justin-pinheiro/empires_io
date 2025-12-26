@@ -7,7 +7,9 @@
   "scripts": {
     "build": "tsc -p .",
     "start": "npm run build && node dist/server.js",
-    "dev": "nodemon --watch src --ext ts --exec \"npm run build && node dist/server.js\""
+    "dev": "nodemon --watch src --ext ts --exec \"npm run build && node dist/server.js\"",
+    "test": "vitest",
+    "test:run": "vitest run"
   },
   "keywords": [],
   "author": "",
@@ -27,6 +29,7 @@
     "@types/winston": "^2.4.4",
     "nodemon": "^3.1.11",
     "ts-node": "^10.9.2",
-    "typescript": "^5.9.3"
+    "typescript": "^5.9.3",
+    "vitest": "^4.0.16"
   }
 }

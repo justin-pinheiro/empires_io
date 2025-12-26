@@ -7,7 +7,6 @@ export class Tile {
   private y: number;
   private neighborsIds: string[];
   private terrainType: TerrainType;
-  private building: Building | null;
 
   constructor(
     id: string, 
@@ -20,15 +19,6 @@ export class Tile {
       this.y = y;
       this.neighborsIds = neighborsIds;
       this.terrainType = terrainType;
-      this.building = null;
-    }
-
-    setBuilding(building : Building) {
-      this.building = building;
-    }
-
-    hasBuilding() {
-      return this.building != null;
     }
 
     setNeighbors(neighborsIds : string[]) {
@@ -41,8 +31,7 @@ export class Tile {
         x: this.x,
         y: this.y,
         neighbors: this.neighborsIds,
-        terrain: TERRAIN_DATA[this.terrainType],
-        building: this.building ? this.building.serialize() : null,
+        terrain: TERRAIN_DATA[this.terrainType]
       };
     }
 }

@@ -21,8 +21,9 @@ export class PlaceBuildingCommand implements ICommand {
         return "Insufficient resources to build " + stats.name;
     }
 
-    const tile = this.gameState.getMap().getTile(this.tileId)
-    if (tile && tile.hasBuilding()) {
+    const map = this.gameState.getMap()
+    const tile = map.getTile(this.tileId)
+    if (tile && map.tileHasBuilding(this.tileId)) {
         return "Tile is already occupied.";
     }
 

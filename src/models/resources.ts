@@ -15,11 +15,11 @@ export class Resources {
     
     serialize() {
         return {
-            population: this.population,
-            food: this.population,
-            gold: this.population,
-            stone: this.population,
-            science: this.science,
+            population: Math.floor(this.population),
+            food: Math.floor(this.population),
+            gold: Math.floor(this.population),
+            stone: Math.floor(this.population),
+            science: Math.floor(this.science),
         }
     }
 
@@ -48,11 +48,11 @@ export class Resources {
     }
 
     substract(resources: Resources) {
-        this.population += resources.getPopulation();
-        this.food += resources.getFood();
-        this.gold += resources.getGold();
-        this.stone += resources.getStone();
-        this.science += resources.getScience();
+        this.population -= resources.getPopulation();
+        this.food -= resources.getFood();
+        this.gold -= resources.getGold();
+        this.stone -= resources.getStone();
+        this.science -= resources.getScience();
     }
     
     superiorOrEqualTo(resources: Resources) : boolean {
