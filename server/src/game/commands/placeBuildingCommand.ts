@@ -18,7 +18,7 @@ export class PlaceBuildingCommand implements ICommand {
     const stats = BUILDING_STATS[this.buildingType];
     if (!stats) return "Invalid building type : " + this.tileId + ".";
 
-    if (!player.getCivilisation().getResources().superiorOrEqualTo(stats.resourcesCost)) {
+    if (!player.getCivilisation().getResources().hasEnough(stats.resourcesCost)) {
         return "Insufficient resources to build " + stats.name;
     }
 
@@ -34,7 +34,7 @@ export class PlaceBuildingCommand implements ICommand {
       return "Tile " + this.tileId +  " does not exist."
     }
 
-    if (map.tileHasBuilding(this.tileId)) {
+    if (map.getBuilding(this.tileId)) {
         return "Tile is already occupied.";
     }
 

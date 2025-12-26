@@ -14,8 +14,8 @@ export const setupSocketHandlers = (io: Server, game: GameEngine) => {
             if (!socketsIds.includes(socket.id)) {
                 socketsIds.push(socket.id);
             }
-            game.addPlayer(socket.id);
-            const tileId = game.getCapitalLocation();
+            game.addPlayer(socket.id, "Name");
+            const tileId = "0,0";
             game.setPlayerCapital(socket.id, tileId);
             broadcastMapUpdates(io, game);
         });

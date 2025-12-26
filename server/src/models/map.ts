@@ -81,6 +81,10 @@ export class GameMap {
         return this.buildings.get(tileKey);
     }
 
+    public getAllBuildings(): IterableIterator<Building> {
+        return this.buildings.values();
+    }
+
     // --- Getters ---
 
     public getTile(id: string): Tile | undefined {

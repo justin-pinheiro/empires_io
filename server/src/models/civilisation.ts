@@ -27,6 +27,15 @@ export class Civilisation {
         const r = this.resources;
         return new Resources(r.getFood(), r.getGold(), r.getStone(), r.getScience(), r.getArmy());
     }
+
+    public addToResources(resources: Resources) {
+        this.resources.add(resources);
+    }
+
+    public subtractFromResources(resources: Resources) {
+        this.resources.subtract(resources);
+    }
+
     // --- Population Logic ---
 
     /**

@@ -16,7 +16,7 @@ export class AttackBuildingCommand implements ICommand {
 		if (!attacker) 
 		return "Player " + this.attackerId + " does not exist.";
 
-		const attackedBuilding = this.gameState.getBuilding(this.tileId);
+		const attackedBuilding = this.gameState.getMap().getBuilding(this.tileId);
 		if (!attackedBuilding) {
 		return "No building found on tile " + this.tileId;
 		}
@@ -24,18 +24,20 @@ export class AttackBuildingCommand implements ICommand {
 		if (this.attackerId === attackedBuilding.getOwnerId())
 		return "Player " + this.attackerId + " cannot attack its own building on tile " + this.tileId;
 
-		const defenderTileNeighbors = this.gameState.getMap().getNeighborsIds(this.tileId, 1);
+		const defenderTileNeighbors = this.gameState.getMap().getTile(this.tileId)?.getNeighbors();
 		let isAttackerNeighbor = false
-		defenderTileNeighbors.forEach(id => {
-			if (this.gameState.getBuilding(id)?.getOwnerId() === this.attackerId) 
-				isAttackerNeighbor = true;
-		})
-		if (!isAttackerNeighbor) {
-			return "Cannot attack building on tile " + this.tileId + " : not a neighbor."
-		}
-
-		if (attacker.getCivilisation().getResources().getArmy() < this.troopCount) {
-			return "Insufficient army to attack with " + this.troopCount + " troops.";
+		if (defenderTileNeighbors) {
+			defenderTileNeighbors.forEach(id => {
+				if (this.gameState.getMap().getBuilding(id)?.getOwnerId() === this.attackerId) 
+					isAttackerNeighbor = true;
+			})
+			if (!isAttackerNeighbor) {
+				return "Cannot attack building on tile " + this.tileId + " : not a neighbor."
+			}
+	
+			if (attacker.getCivilisation().getResources().getArmy() < this.troopCount) {
+				return "Insufficient army to attack with " + this.troopCount + " troops.";
+			}
 		}
 
 		return null
@@ -45,7 +47,7 @@ export class AttackBuildingCommand implements ICommand {
 		this.gameState.getPlayer(this.attackerId)?.getCivilisation().getResources().subtract(
 			new Resources(0,0,0,0,this.troopCount)
 		)
-		const building = this.gameState.getBuilding(this.tileId)
+		const building = this.gameState.getMap().getBuilding(this.tileId)
 		building?.takeDamage(this.troopCount);
 		if (building?.isDestroyed()) {
 			this.gameState.removeBuilding(this.tileId);
