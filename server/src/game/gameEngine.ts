@@ -8,6 +8,7 @@ import { AttackBuildingCommand } from "./commands/attackBuildingCommand.js";
 import { BarbarianManager } from "./barbarianManager.js";
 import Logger from "../utils/logger.js";
 import type { Player } from '../models/player.js';
+import type { Tile } from '../models/tile.js';
 
 /**
  * The GameEngine coordinates the state, the loop, and external commands.
@@ -39,7 +40,7 @@ export class GameEngine extends EventEmitter {
 
     // Broadcast changes to the Socket/Network layer
     this.emit('resourcesUpdate');
-    this.emit('gameStateUpdate'); 
+    this.emit('buildingsUpdate');
   }
 
   // --- Command Interface ---
@@ -67,11 +68,18 @@ export class GameEngine extends EventEmitter {
       .filter(Boolean);
   }
 
-  public getVisibleBuildingsForPlayer(playerId: string) {
+  public getVisibleBuildingsForPlayer(playerId: string): Record<string, any> {
     const allTileIds = this.state.getMap().getAllTileIds();
-    return allTileIds
-      .map(id => this.state.getMap().getBuilding(id))
-      .filter(Boolean);
+    const visibleBuildings: Record<string, any> = {};
+
+    for (const id of allTileIds) {
+      const building = this.state.getMap().getBuilding(id);
+      if (building) {
+        visibleBuildings[id] = building.serialize();
+      }
+    }
+
+    return visibleBuildings;
   }
 
   // --- Player Logic ---
@@ -90,6 +98,19 @@ export class GameEngine extends EventEmitter {
     return this.state.getPlayer(playerId);
   }
 
+  public getPlayers(): Map<string, Player> {
+    return this.state.getPlayers();
+  }
+
+  public getRandomStartingTile() {
+    const playerTileIds = this.state.getMap().getAllBuildingTiles();
+    let tiles: Array<Tile> = []
+    playerTileIds.forEach(id => {
+      const tile = this.state.getMap().getTile(id)
+      if (tile) tiles.push(tile);
+    });
+    return this.state.getMap().getRandomTileIdFarFromCenterAndOtherPlayers(tiles)
+  }
 
   public setPlayerCapital(playerId: string, tileId: string): void {
     if (!tileId) throw new Error('Capital tile ID is required.');
@@ -98,5 +119,23 @@ export class GameEngine extends EventEmitter {
     // or use a command for consistency.
     this.state.addBuilding(playerId, BuildingType.CAPITAL, tileId);
     this.emit('buildingsUpdate');
+  }
+
+  public removePlayerBuildings(playerId: string) {
+    const buildingTilesIds = this.state.getMap().getAllBuildingTiles();
+    buildingTilesIds.forEach(tileId => {
+      if (this.state.getMap().getBuilding(tileId)?.getOwnerId() === playerId) {
+        this.state.removeBuilding(tileId);
+      }
+    })
+  }
+  
+  public removePlayerTilesOwnership(playerId: string) {
+    const tilesIds = this.state.getMap().getAllTileIds();
+    tilesIds.forEach(tileId => {
+      if (this.state.getMap().getTile(tileId)?.getOwnerId() === playerId) {
+        this.state.getMap().removeTileOwner(tileId);
+      }
+    })
   }
 }

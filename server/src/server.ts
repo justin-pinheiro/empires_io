@@ -17,7 +17,7 @@ const io = new Server(httpServer, {
 });
 
 const commandHandler = new CommandHandler();
-const gameState = new GameState(10);
+const gameState = new GameState(5);
 
 const game = new GameEngine(gameState, commandHandler);
 game.start();

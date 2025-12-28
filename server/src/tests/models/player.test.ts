@@ -23,7 +23,7 @@ describe('Player Class', () => {
     const player = new Player('p1', 'Alice', mockCiv, '#00FF00', true);
     const data = player.serialize();
 
-    expect(data.civilisation).toHaveProperty('name', 'Rome');
+    expect(data.civilisationName).toBe('Rome');
     expect(data.isNPC).toBe(true);
   });
 });

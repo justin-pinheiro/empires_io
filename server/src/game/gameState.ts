@@ -5,8 +5,8 @@ import { Civilisation } from "../models/civilisation.js";
 import type { BuildingType } from "../models/buildingData.js";
 
 export class GameState {
-  private readonly players: Map<string, Player> = new Map();
-  private readonly map: GameMap;
+  private players: Map<string, Player> = new Map();
+  private map: GameMap;
 
   constructor(mapSize: number) {
     this.map = new GameMap(mapSize);
@@ -58,6 +58,8 @@ export class GameState {
 
     civ.subtractFromResources(building.stats.resourcesCost);
     this.map.setBuilding(tileId, building);
+    this.map.setTileOwner(tileId, playerId);
+    this.map.setNeighboringTilesOwner(tileId, playerId);
 
     this.applyBuildingEffects(civ, building, 1);
   }
@@ -88,8 +90,8 @@ export class GameState {
 
   public addPlayer(playerId: string, name: string): void {
     const civ = new Civilisation(`${name}'s Empire`);
-    const color = `hsl(${Math.random() * 360}, 70%, 50%)`;
-    const player = new Player(playerId, name, civ, "#3498db", false);
+    const color = "#" + Math.floor(Math.random() * 16777215).toString(16).padStart(6, '0');
+    const player = new Player(playerId, name, civ, color, false);
     this.players.set(playerId, player);
   }
 

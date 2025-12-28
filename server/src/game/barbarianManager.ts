@@ -56,7 +56,7 @@ export class BarbarianManager {
         const neighbors = this.state.getMap().getTile(t)?.getNeighbors();
         if (neighbors) {
           neighbors.forEach(n => {
-            if (!this.state.getMap().getBuilding(n)) neighborCandidates.add(n);
+            if (n && !this.state.getMap().getBuilding(n)) neighborCandidates.add(n);
           });
         }
       });
@@ -81,8 +81,10 @@ export class BarbarianManager {
       const neighbors = this.state.getMap().getTile(tileId)?.getNeighbors();
       if (neighbors) {
         const possibleTargets = neighbors.filter(n => {
-          const b = this.state.getMap().getBuilding(n);
-          return b && b.getOwnerId() !== this.playerId;
+          if (n) {
+            const b = this.state.getMap().getBuilding(n);
+            return b && b.getOwnerId() !== this.playerId;
+          }
         });
 
         if (possibleTargets.length === 0) continue;
