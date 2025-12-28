@@ -2,8 +2,9 @@ import { Server, Socket } from 'socket.io';
 
 import Logger from '../utils/logger.js';
 import type { GameEngine } from '../game/gameEngine.js';
-import { BUILDING_STATS, BuildingType } from '../models/buildingData.js';
-import { TERRAIN_DATA, TerrainType } from '../models/terrainTypeEnum.js';
+import { getSerializedBuildingsData } from '../models/buildingData.js';
+import { TERRAIN_DATA } from '../models/terrainTypeEnum.js';
+import { getSerializedAgesData } from '../models/age.js';
 
 const socketsIds : string[] = [];
 
@@ -12,18 +13,9 @@ export const setupSocketHandlers = (io: Server, game: GameEngine) => {
         Logger.info('User connected: ' + socket.id);
         
         socket.on('request_constants', () => {
-            const buildableStatsReadable = Object.fromEntries(
-                Object.entries(BUILDING_STATS).map(([key, stats]) => [
-                    key,
-                    {
-                        ...stats,
-                        buildableTerrains: stats.buildableTerrains.map(t => TerrainType[t])
-                    }
-                ])
-            );
-
             socket.emit('init_constants', {
-                buildingStats: buildableStatsReadable,
+                buildingStats: getSerializedBuildingsData(),
+                agesData: getSerializedAgesData(),
                 terrainData: TERRAIN_DATA,
             });
         });

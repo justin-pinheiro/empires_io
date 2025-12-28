@@ -5,7 +5,15 @@ import type { Civilisation } from '../types/civilisation';
 export const useCivilisation = () => {
   const [civilisation, setCivilisation] = useState<Civilisation>({
     name: "",
+    age: 1,
     resources: {
+      food: 0, 
+      gold: 0, 
+      stone: 0, 
+      science: 0, 
+      army: 0
+    },
+    resourcesCapacity: {
       food: 0, 
       gold: 0, 
       stone: 0, 
@@ -14,7 +22,6 @@ export const useCivilisation = () => {
     },
     populationCapacity: 0,
     workingPopulation: 0,
-    armyCapacity: 0,
   });
 
   useEffect(() => {

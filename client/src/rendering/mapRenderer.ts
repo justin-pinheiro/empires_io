@@ -12,6 +12,7 @@ export interface RenderState {
 }
 
 export class MapRenderer {
+  
   /**
    * Main draw loop for the entire scene.
    */

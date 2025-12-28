@@ -33,7 +33,7 @@ export class PlaceBuildingCommand implements ICommand {
       return "Tile " + this.tileId +  " does not exist."
     }
 
-    if (map.getBuilding(this.tileId) && map.getBuilding(this.tileId)?.type != BuildingType.WATCH_TOWER) {
+    if (map.getBuilding(this.tileId) && map.getBuilding(this.tileId)?.type != BuildingType.OUTPOST) {
         return "Tile is already occupied.";
     }
 

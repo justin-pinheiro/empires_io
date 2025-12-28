@@ -1,4 +1,3 @@
-import { tr } from "zod/locales";
 import { Resources } from "./resources.js";
 import { TerrainType } from "./terrainTypeEnum.js";
 
@@ -14,7 +13,7 @@ export enum BuildingType {
 	MARKET = "MARKET",
 	MINE = "MINE",
 	FORTIFICATIONS = "FORTIFICATIONS",
-	WATCH_TOWER = "WATCH_TOWER",
+	OUTPOST = "OUTPOST",
 	FISHING_ZONE = "FISHING_ZONE",
 	BARBARIAN_CAMP = "BARBARIAN_CAMP",
 }
@@ -26,7 +25,7 @@ export interface BuildingStats {
 	readonly buildableTerrains: readonly TerrainType[];
 	readonly populationCost: number;
 	readonly resourcesCost: Resources;
-	readonly armyCapacityUpgrade: number;
+	readonly resourcesCapacityUpgrade: Resources;
 	readonly populationCapacityUpgrade: number;
 	readonly production: Resources;
 	readonly productionRate: number;
@@ -46,7 +45,7 @@ export const BUILDING_STATS: Readonly<Record<BuildingType, BuildingStats>> = Obj
 	buildableTerrains: [TerrainType.PLAIN, TerrainType.DESERT, TerrainType.MOUNTAIN, TerrainType.FOREST],
 	populationCost: 1,
 	resourcesCost: Resources.zero(),
-	armyCapacityUpgrade: 10,
+	resourcesCapacityUpgrade: new Resources(50, 50, 50, 500, 20),
 	populationCapacityUpgrade: 5,
 	production: new Resources(1, 1, 1, 1, 1),
 	productionRate: 1,
@@ -60,7 +59,7 @@ export const BUILDING_STATS: Readonly<Record<BuildingType, BuildingStats>> = Obj
 	buildableTerrains: [TerrainType.PLAIN],
 	populationCost: 1,
 	resourcesCost: Resources.zero(),
-	armyCapacityUpgrade: 0,
+	resourcesCapacityUpgrade: new Resources(30, 0, 0, 0, 0),
 	populationCapacityUpgrade: 0,
 	production: new Resources(1, 0, 0, 0, 0),
 	productionRate: 1,
@@ -71,10 +70,10 @@ export const BUILDING_STATS: Readonly<Record<BuildingType, BuildingStats>> = Obj
 	name: "House",
 	description: "Adds population.",
 	baseHealth: 60,
-	buildableTerrains: [TerrainType.PLAIN, TerrainType.DESERT],
+	buildableTerrains: [TerrainType.PLAIN, TerrainType.DESERT, TerrainType.MOUNTAIN, TerrainType.FOREST],
 	populationCost: 0,
 	resourcesCost: new Resources(10, 0, 5, 0, 0),
-	armyCapacityUpgrade: 0,
+	resourcesCapacityUpgrade: new Resources(0, 0, 0, 0, 0),
 	populationCapacityUpgrade: 5,
 	production: Resources.zero(),
 	productionRate: 0,
@@ -88,7 +87,7 @@ export const BUILDING_STATS: Readonly<Record<BuildingType, BuildingStats>> = Obj
 	buildableTerrains: [TerrainType.PLAIN, TerrainType.DESERT],
 	populationCost: 1,
 	resourcesCost: new Resources(5, 10, 0, 0, 0),
-	armyCapacityUpgrade: 0,
+	resourcesCapacityUpgrade: new Resources(0, 0, 0, 0, 10),
 	populationCapacityUpgrade: 0,
 	production: new Resources(0, 0, 0, 0, 1),
 	productionRate: 1,
@@ -102,7 +101,7 @@ export const BUILDING_STATS: Readonly<Record<BuildingType, BuildingStats>> = Obj
 	buildableTerrains: [TerrainType.PLAIN, TerrainType.DESERT],
 	populationCost: 1,
 	resourcesCost: new Resources(0, 10, 0, 0, 0),
-	armyCapacityUpgrade: 0,
+	resourcesCapacityUpgrade: new Resources(0, 0, 0, 100, 0),
 	populationCapacityUpgrade: 0,
 	production: new Resources(0, 0, 0, 1, 0),
 	productionRate: 1,
@@ -116,7 +115,7 @@ export const BUILDING_STATS: Readonly<Record<BuildingType, BuildingStats>> = Obj
 	buildableTerrains: [TerrainType.PLAIN, TerrainType.DESERT],
 	populationCost: 1,
 	resourcesCost: new Resources(10, 0, 5, 0, 0),
-	armyCapacityUpgrade: 0,
+	resourcesCapacityUpgrade: new Resources(0, 20, 0, 0, 0),
 	populationCapacityUpgrade: 0,
 	production: new Resources(0, 1, 0, 0, 0),
 	productionRate: 1,
@@ -130,7 +129,7 @@ export const BUILDING_STATS: Readonly<Record<BuildingType, BuildingStats>> = Obj
 	buildableTerrains: [TerrainType.MOUNTAIN],
 	populationCost: 1,
 	resourcesCost: new Resources(5, 10, 0, 0, 0),
-	armyCapacityUpgrade: 0,
+	resourcesCapacityUpgrade: new Resources(0, 0, 20, 0, 0),
 	populationCapacityUpgrade: 0,
 	production: new Resources(0, 0, 1, 0, 0),
 	productionRate: 1,
@@ -144,21 +143,21 @@ export const BUILDING_STATS: Readonly<Record<BuildingType, BuildingStats>> = Obj
 	buildableTerrains: [TerrainType.MOUNTAIN, TerrainType.PLAIN, TerrainType.FOREST],
 	populationCost: 1,
 	resourcesCost: new Resources(0, 0, 20, 0, 0),
-	armyCapacityUpgrade: 0,
+	resourcesCapacityUpgrade: new Resources(0, 0, 0, 0, 5),
 	populationCapacityUpgrade: 0,
 	production: Resources.zero(),
 	productionRate: 0,
 	vision: 3,
 	buildable: true,
 	},
-	[BuildingType.WATCH_TOWER]: {
-	name: "Watch tower",
+	[BuildingType.OUTPOST]: {
+	name: "Outpost",
 	description: "Building used to claim territory. Can be replaced by another building.",
 	baseHealth: 100,
-	buildableTerrains: [TerrainType.PLAIN, TerrainType.FOREST, TerrainType.DESERT, TerrainType.MOUNTAIN],
+	buildableTerrains: [TerrainType.PLAIN, TerrainType.FOREST, TerrainType.DESERT, TerrainType.MOUNTAIN, TerrainType.WATER],
 	populationCost: 0,
 	resourcesCost: Resources.zero(),
-	armyCapacityUpgrade: 0,
+	resourcesCapacityUpgrade: new Resources(0, 0, 0, 0, 0),
 	populationCapacityUpgrade: 0,
 	production: Resources.zero(),
 	productionRate: 0,
@@ -172,7 +171,7 @@ export const BUILDING_STATS: Readonly<Record<BuildingType, BuildingStats>> = Obj
 	buildableTerrains: [TerrainType.WATER],
 	populationCost: 1,
 	resourcesCost: new Resources(0, 10, 0, 0, 0),
-	armyCapacityUpgrade: 0,
+	resourcesCapacityUpgrade: new Resources(20, 0, 0, 0, 0),
 	populationCapacityUpgrade: 0,
 	production: new Resources(1, 0, 0, 0, 0),
 	productionRate: 1,
@@ -186,7 +185,7 @@ export const BUILDING_STATS: Readonly<Record<BuildingType, BuildingStats>> = Obj
 	buildableTerrains: [TerrainType.PLAIN, TerrainType.FOREST, TerrainType.DESERT, TerrainType.MOUNTAIN],
 	populationCost: 0,
 	resourcesCost: Resources.zero(),
-	armyCapacityUpgrade: 0,
+	resourcesCapacityUpgrade: new Resources(0, 0, 0, 0, 1000),
 	populationCapacityUpgrade: 0,
 	production: Resources.zero(),
 	productionRate: 0,
@@ -194,3 +193,16 @@ export const BUILDING_STATS: Readonly<Record<BuildingType, BuildingStats>> = Obj
 	buildable: false,
 	},
 });
+
+export function getSerializedBuildingsData() {
+	const buildableStatsReadable = Object.fromEntries(
+		Object.entries(BUILDING_STATS).map(([key, stats]) => [
+			key,
+			{
+				...stats,
+				buildableTerrains: stats.buildableTerrains.map(t => TerrainType[t])
+			}
+		])
+	);
+	return buildableStatsReadable;
+}

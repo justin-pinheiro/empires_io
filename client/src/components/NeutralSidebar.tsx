@@ -1,6 +1,5 @@
 import React from 'react';
 import { BaseSidebar } from './BaseSidebar';
-import { useGameConstants } from '../hooks/useGameConstants';
 
 interface NeutralSidebarProps {
     tile: any;
@@ -8,7 +7,6 @@ interface NeutralSidebarProps {
 }
 
 export const NeutralSidebar: React.FC<NeutralSidebarProps> = ({ tile, onClose }) => {
-    const constants = useGameConstants();
     const terrainName = tile.terrain?.name || tile.terrainType || "Unknown";
     
     return (

@@ -3,6 +3,7 @@ import { GameMap } from "../models/map.js";
 import { Building } from "../models/building.js";
 import { Civilisation } from "../models/civilisation.js";
 import { BUILDING_STATS, BuildingType } from "../models/buildingData.js";
+import { Resources } from "../models/resources.js";
 
 export class GameState {
   private players: Map<string, Player> = new Map();
@@ -63,8 +64,8 @@ export class GameState {
     this.map.getTile(tileId)?.getNeighbors().forEach(neighbor => {
       if (neighbor && this.map.getTile(neighbor)?.getOwnerId() === null) 
         this.map.getTile(neighbor)?.setOwnerId(playerId);
-        if (neighbor && !this.map.getBuilding(neighbor) && BUILDING_STATS.WATCH_TOWER.buildableTerrains.includes((this.map.getTile(neighbor)?.getTerrainType()!))) 
-          this.map.setBuilding(neighbor, new Building(BuildingType.WATCH_TOWER, playerId));
+        if (neighbor && !this.map.getBuilding(neighbor))
+          this.map.setBuilding(neighbor, new Building(BuildingType.OUTPOST, playerId));
       })
 
     this.applyBuildingEffects(civ, building, 1);
@@ -89,7 +90,13 @@ export class GameState {
     const s = building.stats;
     civ.updateWorkingPopulation(s.populationCost * multiplier);
     civ.updatePopulationCapacity(s.populationCapacityUpgrade * multiplier);
-    civ.updateArmyCapacity();
+    civ.updateResourcesCapacity(new Resources(
+      s.resourcesCapacityUpgrade.getFood() * multiplier,
+      s.resourcesCapacityUpgrade.getGold() * multiplier,
+      s.resourcesCapacityUpgrade.getStone() * multiplier,
+      s.resourcesCapacityUpgrade.getScience() * multiplier,
+      s.resourcesCapacityUpgrade.getArmy() * multiplier,
+    ));
   }
 
   // --- Player Management ---

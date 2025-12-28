@@ -2,8 +2,9 @@ import type { Resources } from "./resources";
 
 export interface Civilisation {
   name: string;
+  age: number;
   resources: Resources;
+  resourcesCapacity: Resources;
   populationCapacity: number;
   workingPopulation: number;
-  armyCapacity: number;
 }

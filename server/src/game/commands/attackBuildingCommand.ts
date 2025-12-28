@@ -55,7 +55,7 @@ export class AttackBuildingCommand implements ICommand {
 		building?.takeDamage(this.troopCount);
 		if (building?.isDestroyed()) {
 			this.gameState.removeBuilding(this.tileId);
-			this.gameState.getMap().setBuilding(this.tileId, new Building(BuildingType.WATCH_TOWER, this.attackerId));
+			this.gameState.getMap().setBuilding(this.tileId, new Building(BuildingType.OUTPOST, this.attackerId));
 			this.gameState.getMap().setTileOwner(this.tileId, this.attackerId);
 		}
 	}

@@ -1,14 +1,15 @@
 import React from 'react';
 import type { Civilisation } from '../types/civilisation';
 import type { Resources } from '../types/resources';
+import type { AgeStats } from '../types/age';
 
 interface HUDProps {
     civilisation: Civilisation;
     production: Resources;
+    nextAge: AgeStats
 }
 
-export const HUD: React.FC<HUDProps> = ({ civilisation, production }) => {
-    // Panel 1: Civilization State (Left)
+export const GameHUD: React.FC<HUDProps> = ({ civilisation, production, nextAge }) => {
     const stateItems = [
         { 
             label: 'Pop', 
@@ -18,20 +19,45 @@ export const HUD: React.FC<HUDProps> = ({ civilisation, production }) => {
             color: '#a162e9' 
         },
         { 
-            label: 'Army', 
-            value: `${Math.floor(civilisation.resources.army)}/${Math.floor(civilisation.armyCapacity)}`, 
+            label: 'Army',
+            value: `${Math.floor(civilisation.resources.army)}/${Math.floor(civilisation.resourcesCapacity.army)}`, 
             production: production.army, 
             icon: '⚔️', 
             color: '#ff4d4d' 
         },
     ];
-
-    // Panel 2: Treasury (Right)
     const resourceItems = [
-        { label: 'Food', value: Math.floor(civilisation.resources.food), production: production.food, icon: '🌾', color: '#4285d6' },
-        { label: 'Gold', value: Math.floor(civilisation.resources.gold), production: production.gold, icon: '💰', color: '#ffd700' },
-        { label: 'Stone', value: Math.floor(civilisation.resources.stone), production: production.stone, icon: '🪨', color: '#aaaaaa' },
-        { label: 'Science', value: Math.floor(civilisation.resources.science), production: production.science, icon: '🧪', color: '#6cde63' },
+        { 
+            label: 'Food', 
+            value: `${Math.floor(civilisation.resources.food)}/${Math.floor(civilisation.resourcesCapacity.food)}`,
+            production: production.food, 
+            icon: '🌾', 
+            color: '#4285d6' 
+        },
+        { 
+            label: 'Gold', 
+            value: `${Math.floor(civilisation.resources.gold)}/${Math.floor(civilisation.resourcesCapacity.gold)}`,
+            production: production.gold, 
+            icon: '💰', 
+            color: '#ffd700' 
+        },
+        { 
+            label: 'Stone', 
+            value: `${Math.floor(civilisation.resources.stone)}/${Math.floor(civilisation.resourcesCapacity.stone)}`,
+            production: production.stone, 
+            icon: '🪨', 
+            color: '#aaaaaa' 
+        }
+    ];
+    
+    const scienceItems = [
+        { 
+            label: 'Science', 
+            value: `${Math.floor(civilisation.resources.science)}/${Math.floor(nextAge.requiredScience)}`,
+            production: production.science, 
+            icon: '🧪', 
+            color: '#6cde63' 
+        }
     ];
 
     const renderItem = (item: any) => (
@@ -58,9 +84,14 @@ export const HUD: React.FC<HUDProps> = ({ civilisation, production }) => {
                 {stateItems.map(renderItem)}
             </div>
 
-            {/* RIGHT PANEL: RESOURCES */}
+            {/* CENTER PANEL: RESOURCES */}
             <div style={panelStyle}>
                 {resourceItems.map(renderItem)}
+            </div>
+
+            {/* RIGHT PANEL: SCIENCE */}
+            <div style={panelStyle}>
+                {scienceItems.map(renderItem)}
             </div>
         </div>
     );

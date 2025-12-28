@@ -1,4 +1,3 @@
-// hooks/useCamera.ts
 import { useRef } from 'react';
 
 export const useCamera = () => {

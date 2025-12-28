@@ -3,11 +3,12 @@ import { useGameConstants } from '../hooks/useGameConstants';
 import type { BuildingStats } from '../types/buildingStats';
 import { BaseSidebar } from './BaseSidebar';
 import type { Resources } from '../types/resources';
+import type { BuildingType } from '../types/buildingType';
 
 interface BuildSidebarProps {
     selectedTile: any;
     resources: Resources;
-    onBuild: (type: string) => void;
+    onBuild: (buildingTypeId: string) => void;
     onClose: () => void;
 }
 
