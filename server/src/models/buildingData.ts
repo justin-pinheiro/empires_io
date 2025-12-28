@@ -26,7 +26,8 @@ export interface BuildingStats {
 	readonly armyCapacityUpgrade: number;
 	readonly populationCapacityUpgrade: number;
 	readonly production: Resources;
-	readonly productionRate: number; // Removed null, use 0 for "no production"
+	readonly productionRate: number;
+	readonly vision: number;
 }
 
 /**
@@ -45,6 +46,7 @@ export const BUILDING_STATS: Readonly<Record<BuildingType, BuildingStats>> = Obj
 	populationCapacityUpgrade: 5,
 	production: new Resources(1, 1, 1, 1, 1),
 	productionRate: 1,
+	vision: 3,
 	},
 	[BuildingType.FARM]: {
 	name: "Farm",
@@ -57,6 +59,7 @@ export const BUILDING_STATS: Readonly<Record<BuildingType, BuildingStats>> = Obj
 	populationCapacityUpgrade: 0,
 	production: new Resources(1, 0, 0, 0, 0),
 	productionRate: 0.4,
+	vision: 2,
 	},
 	[BuildingType.HOUSE]: {
 	name: "House",
@@ -69,6 +72,7 @@ export const BUILDING_STATS: Readonly<Record<BuildingType, BuildingStats>> = Obj
 	populationCapacityUpgrade: 5,
 	production: Resources.zero(),
 	productionRate: 0,
+	vision: 2,
 	},
 	[BuildingType.BARRACKS]: {
 	name: "Barracks",
@@ -81,6 +85,7 @@ export const BUILDING_STATS: Readonly<Record<BuildingType, BuildingStats>> = Obj
 	populationCapacityUpgrade: 0,
 	production: new Resources(0, 0, 0, 0, 1),
 	productionRate: 0.8,
+	vision: 2,
 	},
 	[BuildingType.LIBRARY]: {
 	name: "Library",
@@ -93,6 +98,7 @@ export const BUILDING_STATS: Readonly<Record<BuildingType, BuildingStats>> = Obj
 	populationCapacityUpgrade: 0,
 	production: new Resources(0, 0, 0, 1, 0),
 	productionRate: 0.5,
+	vision: 2,
 	},
 	[BuildingType.MARKET]: {
 	name: "Market",
@@ -105,6 +111,7 @@ export const BUILDING_STATS: Readonly<Record<BuildingType, BuildingStats>> = Obj
 	populationCapacityUpgrade: 0,
 	production: new Resources(0, 1, 0, 0, 0),
 	productionRate: 0.5,
+	vision: 2,
 	},
 	[BuildingType.MINE]: {
 	name: "Mine",
@@ -117,6 +124,7 @@ export const BUILDING_STATS: Readonly<Record<BuildingType, BuildingStats>> = Obj
 	populationCapacityUpgrade: 0,
 	production: new Resources(0, 0, 1, 0, 0),
 	productionRate: 0.5,
+	vision: 2,
 	},
 	[BuildingType.FORTIFICATIONS]: {
 	name: "Fortifications",
@@ -129,6 +137,7 @@ export const BUILDING_STATS: Readonly<Record<BuildingType, BuildingStats>> = Obj
 	populationCapacityUpgrade: 0,
 	production: Resources.zero(),
 	productionRate: 0,
+	vision: 3,
 	},
 	[BuildingType.BARBARIAN_CAMP]: {
 	name: "Barbarian Camp",
@@ -141,5 +150,6 @@ export const BUILDING_STATS: Readonly<Record<BuildingType, BuildingStats>> = Obj
 	populationCapacityUpgrade: 0,
 	production: Resources.zero(),
 	productionRate: 0,
+	vision: 2,
 	},
 });

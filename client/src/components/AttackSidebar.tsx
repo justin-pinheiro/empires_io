@@ -1,8 +1,9 @@
 import React from 'react';
 import { ATTACK_ACTIONS, type AttackType } from '../types/attackStats';
 import type { ResourceState } from '../hooks/useResources';
+import { BaseSidebar } from './BaseSidebar';
 
-interface ActionSidebarProps {
+interface AttackSidebarProps {
     tile: any;
     resources: ResourceState;
     isNeighbor: boolean;
@@ -10,40 +11,20 @@ interface ActionSidebarProps {
     onClose: () => void;
 }
 
-export const ActionSidebar: React.FC<ActionSidebarProps> = ({ tile, resources, isNeighbor, onAttack, onClose }) => {
+export const AttackSidebar: React.FC<AttackSidebarProps> = ({ tile, resources, isNeighbor, onAttack, onClose }) => {
     
     const canAfford = (armyCost: number) => {
         return resources.army >= armyCost;
     };
 
     return (
-        <div style={styles.sidebar}>
-            <div style={styles.header}>
-                <h2 style={{ margin: 0, color: '#ff4d4d' }}>Enemy Territory</h2>
-                <button onClick={onClose} style={styles.closeBtn}>✕</button>
-            </div>
-
-            {/* INTEL SECTION */}
-            <div style={styles.section}>
-                <p style={styles.label}>Owner: <span style={{color: '#fff'}}>{tile.ownerName || "Unknown Occupant"}</span></p>
-                <p style={styles.label}>Terrain: <span style={{color: '#fff'}}>{tile.terrainType}</span></p>
-                {tile.building && (
-                    <div style={styles.buildingInfo}>
-                        <p style={{margin: '0 0 5px 0'}}>Structure: <strong>{tile.building.type}</strong></p>
-                        <div style={styles.healthBarContainer}>
-                            <div style={{...styles.healthBar, width: `${(tile.building.health / tile.building.maxHealth) * 100}%`}} />
-                        </div>
-                        <span style={{fontSize: '10px'}}>HP: {tile.building.health} / {tile.building.maxHealth}</span>
-                    </div>
-                )}
-            </div>
-
-            <hr style={styles.divider} />
-
-            {/* ATTACK SECTION */}
+        <BaseSidebar 
+            title="Ennemy territory" 
+            subtitle={`Terrain: ${tile.terrain.name}`} 
+            onClose={onClose}
+            borderColor="#d03737ff"
+        >
             <div style={styles.scrollArea}>
-                <h3 style={{fontSize: '14px', textTransform: 'uppercase', color: '#888'}}>Available Actions</h3>
-                
                 {!isNeighbor ? (
                     <p style={styles.warningText}>⚠️ You can only attack tiles adjacent to your borders.</p>
                 ) : (
@@ -76,7 +57,7 @@ export const ActionSidebar: React.FC<ActionSidebarProps> = ({ tile, resources, i
                     })
                 )}
             </div>
-        </div>
+        </BaseSidebar>
     );
 };
 

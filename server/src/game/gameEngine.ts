@@ -1,5 +1,5 @@
 import { EventEmitter } from 'events';
-import { BuildingType } from "../models/buildingData.js";
+import { BUILDING_STATS, BuildingType } from "../models/buildingData.js";
 import { GameLoop } from "./gameLoop.js";
 import { GameState } from "./gameState.js";
 import { CommandHandler } from "./commands/commandHandler.js";
@@ -60,26 +60,59 @@ export class GameEngine extends EventEmitter {
 
   // --- Visibility & Fog of War ---
 
-  public getVisibleTilesForPlayer(playerId: string) {
-    // Currently returns all tiles, but structured for future Fog of War logic
-    const allTileIds = this.state.getMap().getAllTileIds();
-    return allTileIds
-      .map(id => this.state.getMap().getTile(id)?.serialize())
-      .filter(Boolean);
+  /**
+   * Helper to get all unique Tile IDs visible to a specific player.
+   */
+  private getVisibleTileIdsForPlayer(playerId: string): Set<string> {
+      const visibleTileIds = new Set<string>();
+      const map = this.state.getMap();
+      
+      const playerBuildings = map.getAllBuildingTiles().filter(tileId => {
+          return map.getBuilding(tileId)?.getOwnerId() === playerId;
+      });
+
+      playerBuildings.forEach(tileId => {
+          const building = map.getBuilding(tileId);
+          const tile = map.getTile(tileId);
+          
+          if (building && tile) {
+              const visionRange = building.stats.vision || 1;
+              const seenIds = map.getTileIdsInRange(tile, visionRange);
+              seenIds.forEach(id => visibleTileIds.add(id));
+          }
+      });
+
+      return visibleTileIds;
   }
 
+  /**
+   * Returns only the tiles the player can currently see.
+   */
+  public getVisibleTilesForPlayer(playerId: string) {
+      const visibleIds = this.getVisibleTileIdsForPlayer(playerId);
+      const map = this.state.getMap();
+
+      return Array.from(visibleIds)
+          .map(id => map.getTile(id)?.serialize())
+          .filter(Boolean);
+  }
+
+  /**
+   * Returns only the buildings located on tiles the player can see.
+   */
   public getVisibleBuildingsForPlayer(playerId: string): Record<string, any> {
-    const allTileIds = this.state.getMap().getAllTileIds();
-    const visibleBuildings: Record<string, any> = {};
+      const visibleIds = this.getVisibleTileIdsForPlayer(playerId);
+      const visibleBuildings: Record<string, any> = {};
+      const map = this.state.getMap();
 
-    for (const id of allTileIds) {
-      const building = this.state.getMap().getBuilding(id);
-      if (building) {
-        visibleBuildings[id] = building.serialize();
-      }
-    }
+      visibleIds.forEach(id => {
+          const building = map.getBuilding(id);
+          if (building) {
+              visibleBuildings[id] = building.serialize();
+          }
+      });
 
-    return visibleBuildings;
+      return visibleBuildings;
   }
 
   // --- Player Logic ---

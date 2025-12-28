@@ -1,6 +1,7 @@
 // components/MapView.tsx
 import React, { useEffect, useRef, useState } from 'react';
-import { useMapSocket } from '../hooks/useMapSockets';
+import { useTiles } from '../hooks/useTiles';
+import { useBuildings } from '../hooks/useBuildings';
 import { MapRenderer } from '../rendering/mapRenderer';
 import { loadAssets } from '../utils/assetLoader';
 import { pixelToHex } from '../utils/hexMath';
@@ -8,15 +9,18 @@ import { usePlayersSocket } from '../hooks/usePlayersSockets';
 import { BuildSidebar } from './BuildSidebar';
 import { socket } from '../socket';
 import { useResources } from '../hooks/useResources';
-import { ActionSidebar } from './ActionSidebar';
+import { AttackSidebar } from './AttackSidebar';
 import { ATTACK_ACTIONS } from '../types/attackStats';
+import { NeutralSidebar } from './NeutralSidebar';
+import { BuildingInfoSidebar } from './BuildingInfoSidebar';
 
 export const MapView: React.FC = () => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const resources = useResources();
   const [assetsLoaded, setAssetsLoaded] = useState(false);
   const [selectedTileId, setSelectedTileId] = useState<string | null>(null);
-  const { tilesRef, buildingsRef } = useMapSocket();
+  const { tilesRef } = useTiles();
+  const { buildingsRef } = useBuildings();
   const { playersRef } = usePlayersSocket();
   const cameraRef = useRef({ x: window.innerWidth / 2, y: window.innerHeight / 2, zoom: 1.0 });
   const mouseState = useRef({ isDragging: false });
@@ -121,9 +125,15 @@ export const MapView: React.FC = () => {
   if (!assetsLoaded) return <div>Loading Assets...</div>;
 
   const selectedTileObj = tilesRef.current.find(t => t.id === selectedTileId);
-  const isEnemyTile = selectedTileObj && selectedTileObj.ownerId && selectedTileObj.ownerId !== socket.id;
+  const ownerId = selectedTileObj?.ownerId;
+  const currentSocketId = socket.id;
 
-  // Check if any neighbor of the selected tile is owned by the current player
+  const isNeutralTile: boolean = !!selectedTileObj && ownerId === null;
+  const isEnemyTile: boolean = !!selectedTileObj && ownerId != null && String(ownerId) !== String(currentSocketId);
+  const isPlayerTile: boolean = !!selectedTileObj && ownerId != null && String(ownerId) === String(currentSocketId);
+
+  const hasBuilding: boolean = !!selectedTileId && !!buildingsRef.current.get(selectedTileId);
+
   const isNeighborOfPlayer = selectedTileObj?.neighbors?.some((neighborId: string) => {
       const neighbor = tilesRef.current.find(t => t.id === neighborId);
       return neighbor && String(neighbor.ownerId) === String(socket.id);
@@ -141,24 +151,35 @@ export const MapView: React.FC = () => {
         onClick={onClick}
         style={{ display: 'block', cursor: 'grab', touchAction: 'none' }}
       />
-    {selectedTileId && selectedTileObj && (
-        String(selectedTileObj.ownerId) === String(socket.id) ? (
-            <BuildSidebar 
-                selectedTile={selectedTileObj} 
-                resources={resources} 
-                onBuild={handleBuild}
-                onClose={() => setSelectedTileId(null)}
-            />
-        ) : (
-            <ActionSidebar 
-                tile={selectedTileObj} 
-                resources={resources} 
-                isNeighbor={isNeighborOfPlayer} // Calculated in step 2
-                onAttack={(type) => socket.emit('attack', { tileKey: selectedTileId, troopCount: ATTACK_ACTIONS[type as keyof typeof ATTACK_ACTIONS].damage })}
-                onClose={() => setSelectedTileId(null)}
-            />
-        )
-    )}
+      {selectedTileObj && isPlayerTile && !hasBuilding && (  
+      <BuildSidebar 
+          selectedTile={selectedTileObj} 
+          resources={resources} 
+          onBuild={handleBuild}
+          onClose={() => setSelectedTileId(null)}
+      />)}
+      {selectedTileObj && isPlayerTile && hasBuilding && (  
+      <BuildingInfoSidebar 
+          building={buildingsRef.current.get(selectedTileId!)!} 
+          resources={resources} 
+          onUpgrade={() => socket.emit('upgrade', { tileKey: selectedTileId })}
+          onClose={() => setSelectedTileId(null)}
+      />)}
+      {selectedTileObj && isEnemyTile && (  
+        <AttackSidebar 
+            tile={selectedTileObj} 
+            resources={resources} 
+            isNeighbor={isNeighborOfPlayer}
+            onAttack={(type) => socket.emit('attack', { tileKey: selectedTileId, troopCount: ATTACK_ACTIONS[type as keyof typeof ATTACK_ACTIONS].damage })}
+            onClose={() => setSelectedTileId(null)}
+        />  
+      )}
+      {selectedTileObj && isNeutralTile && (  
+        <NeutralSidebar 
+            tile={selectedTileObj} 
+            onClose={() => setSelectedTileId(null)}
+        />  
+      )}
     </div>
   );
 };

@@ -2,9 +2,10 @@ import React from 'react';
 import { useGameConstants } from '../hooks/useGameConstants';
 import type { BuildingStats } from '../types/buildingStats';
 import type { ResourceState } from '../hooks/useResources';
+import { BaseSidebar } from './BaseSidebar';
 
 interface BuildSidebarProps {
-    selectedTile: any; // The tile object from tilesRef
+    selectedTile: any;
     resources: ResourceState;
     onBuild: (type: string) => void;
     onClose: () => void;
@@ -17,6 +18,7 @@ export const BuildSidebar: React.FC<BuildSidebarProps> = ({
     onClose 
 }) => {
     const constants = useGameConstants();
+    if (!constants) return null;
 
     const canAfford = (cost: any) => {
         return (
@@ -28,20 +30,13 @@ export const BuildSidebar: React.FC<BuildSidebarProps> = ({
         );
     };
 
-    if (!constants) return null;
-
     return (
-        <div style={styles.sidebar}>
-            <div style={styles.header}>
-                <h2 style={{ margin: 0 }}>Construction</h2>
-                <button onClick={onClose} style={styles.closeBtn}>✕</button>
-            </div>
-
-            {/* Print the current terrain name */}
-            <p style={styles.subtitle}>
-                Terrain: <strong style={{ color: '#4CAF50' }}>{selectedTile.terrain.name}</strong>
-            </p>
-
+        <BaseSidebar 
+            title="Construction" 
+            subtitle={`Terrain: ${selectedTile.terrain.name}`} 
+            onClose={onClose}
+            borderColor="#4CAF50" // Green border for building
+        >
             <div style={styles.scrollArea}>
                 {Object.entries(constants.buildingStats as Record<string, BuildingStats>).map(([key, stats]) => {
                     // 1. Hide Admin/System buildings
@@ -102,7 +97,7 @@ export const BuildSidebar: React.FC<BuildSidebarProps> = ({
                     );
                 })}
             </div>
-        </div>
+        </BaseSidebar>
     );
 };
 

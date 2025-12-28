@@ -74,10 +74,13 @@ export class Building {
 
   public serialize() {
     return {
+      ownerId: this.ownerId,
       type: this.type,
       name: this.stats.name,
-      ownerId: this.ownerId,
+      description: this.stats.description,
       health: this.getHealth(),
+      production: this.stats.production.serialize(),
+      productionRate: this.stats.productionRate,
       isDestroyed: this.isDestroyed()
     };
   }

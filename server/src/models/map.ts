@@ -49,7 +49,7 @@ export class GameMap {
         return this.getTile("0,0");
     }
     
-    private getTileIdsInRange(startTile: Tile, range: number): string[] {
+    public getTileIdsInRange(startTile: Tile, range: number): string[] {
         const visited = new Set<string>();
         let currentFringe: string[] = [startTile.getId()];
         visited.add(startTile.getId());
