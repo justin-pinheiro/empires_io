@@ -1,4 +1,3 @@
-import { stat } from "node:fs";
 import { BUILDING_STATS } from "../../models/buildingData.js";
 import type { ICommand } from "../../utils/ICommand.js";
 import type { GameState } from "../gameState.js";
@@ -39,7 +38,7 @@ export class PlaceBuildingCommand implements ICommand {
     }
 
     const terrain = tile.getTerrainType()
-    if (!(terrain in stats.buildableTerrains)) {
+    if (!(stats.buildableTerrains.includes(terrain))) {
       return "Cannot build " + stats.name + " on terrain type " + terrain + ". Allowed : " + stats.buildableTerrains;
     }
 

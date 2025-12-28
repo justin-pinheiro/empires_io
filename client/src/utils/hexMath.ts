@@ -34,3 +34,47 @@ export const drawHexagon = (
   ctx.lineWidth = isHovered ? 3 : 1;
   ctx.stroke();
 };
+
+/**
+ * Converts screen pixels back to axial hex coordinates (q, r)
+ */
+export const pixelToHex = (mouseX: number, mouseY: number, camX: number, camY: number, zoom: number) => {
+  // 1. Adjust for Camera and Zoom to get "World Space" coordinates
+  const worldX = (mouseX - camX) / zoom;
+  const worldY = (mouseY - camY) / zoom;
+
+  // 2. Inverse of the layout matrix (Pointy-top hexes)
+  const q = (2/3 * worldX) / HEX_SIZE;
+  const r = (-1/3 * worldX + Math.sqrt(3)/3 * worldY) / HEX_SIZE;
+
+  // 3. Hex Rounding (crucial for finding the exact hex center)
+  return hexRound(q, r);
+};
+
+/**
+ * Rounds fractional hex coordinates to the nearest whole integer hex
+ */
+function hexRound(fracQ: number, fracR: number) {
+  let q = Math.round(fracQ);
+  let r = Math.round(fracR);
+  let s = Math.round(-fracQ - fracR);
+
+  const qDiff = Math.abs(q - fracQ);
+  const rDiff = Math.abs(r - fracR);
+  const sDiff = Math.abs(s - (-fracQ - fracR));
+
+  if (qDiff > rDiff && qDiff > sDiff) {
+    q = -r - s;
+  } else if (rDiff > sDiff) {
+    r = -q - s;
+  }
+  
+  return { q, r };
+}
+
+export const hexToRgba = (hex: string, alpha: number) => {
+  const r = parseInt(hex.slice(1, 3), 16);
+  const g = parseInt(hex.slice(3, 5), 16);
+  const b = parseInt(hex.slice(5, 7), 16);
+  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+};

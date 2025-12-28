@@ -6,6 +6,7 @@ interface SerializedTile {
   id: string;
   x: number;
   y: number;
+  ownerId: string;
   neighbors: string[];
   terrain: { name: string; color: string };
 }
@@ -22,11 +23,11 @@ export const useMapSocket = () => {
   const buildingsRef = useRef<Map<string, BuildingData>>(new Map());
 
   useEffect(() => {
-    socket.on('mapUpdate', (data) => { tilesRef.current = data; });
-    socket.on('buildingsUpdate', (data) => {
-      const bMap = new Map();
-      data.forEach((b: { tileKey: any; }) => bMap.set(b.tileKey, b));
-      buildingsRef.current = bMap;
+    socket.on('mapUpdate', (data) => { 
+      tilesRef.current = data;
+    });
+    socket.on('buildingsUpdate', (buildingMap: Record<string, BuildingData>) => {
+      buildingsRef.current = new Map(Object.entries(buildingMap));
     });
 
     return () => {

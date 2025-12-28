@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { MapView } from './MapView';
-import { HUD } from './HUD';
 import { socket } from '../socket';
+import { ResourceHUD } from './HUD';
 
 export const GameScene: React.FC = () => {
   const [resources, setResources] = useState({
@@ -17,7 +17,7 @@ export const GameScene: React.FC = () => {
 
   return (
     <div style={{ width: '100vw', height: '100vh', background: '#000' }}>
-      <HUD resources={resources} />
+      <ResourceHUD resources={resources} />
       <MapView />
     </div>
   );
