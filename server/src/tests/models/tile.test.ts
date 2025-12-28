@@ -6,7 +6,7 @@ import { TerrainType } from '../../models/terrainTypeEnum.js';
 describe('Tile Class', () => {
   
   test('should initialize with correct values', () => {
-    const tile = new Tile('1-1', 1, 1, TerrainType.PLAIN);
+    const tile = new Tile('1-1', 1, 1, null, TerrainType.PLAIN);
     
     assert.strictEqual(tile.getId(), '1-1');
     assert.strictEqual(tile.getTerrainType(), TerrainType.PLAIN);
@@ -14,7 +14,7 @@ describe('Tile Class', () => {
   });
 
   test('should add neighbors correctly and avoid duplicates', () => {
-    const tile = new Tile('1-1', 1, 1, TerrainType.PLAIN);
+    const tile = new Tile('1-1', 1, 1, null, TerrainType.PLAIN);
     tile.addNeighbor('1-2');
     tile.addNeighbor('1-2'); // Duplicate
 
@@ -23,7 +23,7 @@ describe('Tile Class', () => {
   });
 
   test('serialize() should return full terrain metadata', () => {
-    const tile = new Tile('1-1', 0, 0, TerrainType.WATER);
+    const tile = new Tile('1-1', 0, 0, null, TerrainType.WATER);
     const data = tile.serialize();
 
     assert.strictEqual(data.terrain.name, "Water");
@@ -31,7 +31,7 @@ describe('Tile Class', () => {
   });
 
   test('toJSON() should be called during JSON stringification', () => {
-    const tile = new Tile('1-1', 0, 0, TerrainType.DESERT);
+    const tile = new Tile('1-1', 0, 0, null, TerrainType.DESERT);
     const jsonString = JSON.stringify(tile);
     
     assert.ok(jsonString.includes('"name":"Desert"'));

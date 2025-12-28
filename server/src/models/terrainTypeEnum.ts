@@ -9,7 +9,7 @@ export enum TerrainType {
     DESERT
 }
 
-export const TERRAIN_TYPE_VALUES = Object.values(TerrainType) as TerrainType[];
+export const TERRAIN_TYPE_VALUES = Object.values(TerrainType).filter(v => typeof v === "number") as TerrainType[];
 
 export interface TerrainDefinition {
   readonly name: string;
@@ -21,11 +21,11 @@ export interface TerrainDefinition {
  * Using `Readonly` and `Record` ensures type-safety and immutability.
  */
 export const TERRAIN_DATA: Record<TerrainType, TerrainDefinition> = {
-  [TerrainType.WATER]:    { name: "Water",    color: "#3498db" },
-  [TerrainType.PLAIN]:    { name: "Plain",    color: "#2ecc71" },
-  [TerrainType.MOUNTAIN]: { name: "Mountain", color: "#95a5a6" },
-  [TerrainType.FOREST]:   { name: "Forest",   color: "#27ae60" },
-  [TerrainType.DESERT]:   { name: "Desert",   color: "#f1c40f" },
+  [TerrainType.WATER]:    { name: "WATER",    color: "#3498db" },
+  [TerrainType.PLAIN]:    { name: "PLAIN",    color: "#2ecc71" },
+  [TerrainType.MOUNTAIN]: { name: "MOUNTAIN", color: "#95a5a6" },
+  [TerrainType.FOREST]:   { name: "FOREST",   color: "#27ae60" },
+  [TerrainType.DESERT]:   { name: "DESERT",   color: "#f1c40f" },
 } as const;
 
 /**
@@ -33,6 +33,5 @@ export const TERRAIN_DATA: Record<TerrainType, TerrainDefinition> = {
  */
 export function getRandomTerrainType(): TerrainType {
   const randomIndex = Math.floor(Math.random() * TERRAIN_TYPE_VALUES.length);
-  const randomType = TERRAIN_TYPE_VALUES[randomIndex];
-  return randomType as TerrainType;
+  return TERRAIN_TYPE_VALUES[randomIndex]!;
 }

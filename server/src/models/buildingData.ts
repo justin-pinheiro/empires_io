@@ -18,6 +18,7 @@ export enum BuildingType {
 
 export interface BuildingStats {
 	readonly name: string;
+	readonly description: string;
 	readonly baseHealth: number;
 	readonly buildableTerrains: readonly TerrainType[];
 	readonly populationCost: number;
@@ -35,6 +36,7 @@ export interface BuildingStats {
 export const BUILDING_STATS: Readonly<Record<BuildingType, BuildingStats>> = Object.freeze({
 	[BuildingType.CAPITAL]: {
 	name: "Capital",
+	description: "The capital of your civilisation.",
 	baseHealth: 200,
 	buildableTerrains: [TerrainType.PLAIN, TerrainType.DESERT, TerrainType.MOUNTAIN, TerrainType.FOREST],
 	populationCost: 1,
@@ -46,6 +48,7 @@ export const BUILDING_STATS: Readonly<Record<BuildingType, BuildingStats>> = Obj
 	},
 	[BuildingType.FARM]: {
 	name: "Farm",
+	description: "Produces food to feed your population.",
 	baseHealth: 40,
 	buildableTerrains: [TerrainType.PLAIN],
 	populationCost: 1,
@@ -57,6 +60,7 @@ export const BUILDING_STATS: Readonly<Record<BuildingType, BuildingStats>> = Obj
 	},
 	[BuildingType.HOUSE]: {
 	name: "House",
+	description: "Adds population.",
 	baseHealth: 60,
 	buildableTerrains: [TerrainType.PLAIN, TerrainType.DESERT],
 	populationCost: 0,
@@ -68,6 +72,7 @@ export const BUILDING_STATS: Readonly<Record<BuildingType, BuildingStats>> = Obj
 	},
 	[BuildingType.BARRACKS]: {
 	name: "Barracks",
+	description: "Train your army faster.",
 	baseHealth: 100,
 	buildableTerrains: [TerrainType.PLAIN, TerrainType.DESERT],
 	populationCost: 1,
@@ -79,6 +84,7 @@ export const BUILDING_STATS: Readonly<Record<BuildingType, BuildingStats>> = Obj
 	},
 	[BuildingType.LIBRARY]: {
 	name: "Library",
+	description: "Produce science to get discoveries.",
 	baseHealth: 60,
 	buildableTerrains: [TerrainType.PLAIN, TerrainType.DESERT],
 	populationCost: 1,
@@ -90,6 +96,7 @@ export const BUILDING_STATS: Readonly<Record<BuildingType, BuildingStats>> = Obj
 	},
 	[BuildingType.MARKET]: {
 	name: "Market",
+	description: "Produce wealth in your empire.",
 	baseHealth: 60,
 	buildableTerrains: [TerrainType.PLAIN, TerrainType.DESERT],
 	populationCost: 1,
@@ -101,6 +108,7 @@ export const BUILDING_STATS: Readonly<Record<BuildingType, BuildingStats>> = Obj
 	},
 	[BuildingType.MINE]: {
 	name: "Mine",
+	description: "Produce stone for your empire.",
 	baseHealth: 60,
 	buildableTerrains: [TerrainType.MOUNTAIN],
 	populationCost: 1,
@@ -112,6 +120,7 @@ export const BUILDING_STATS: Readonly<Record<BuildingType, BuildingStats>> = Obj
 	},
 	[BuildingType.FORTIFICATIONS]: {
 	name: "Fortifications",
+	description: "A strong fortification to defend your ground.",
 	baseHealth: 150,
 	buildableTerrains: [TerrainType.MOUNTAIN, TerrainType.PLAIN, TerrainType.FOREST],
 	populationCost: 1,
@@ -123,6 +132,7 @@ export const BUILDING_STATS: Readonly<Record<BuildingType, BuildingStats>> = Obj
 	},
 	[BuildingType.BARBARIAN_CAMP]: {
 	name: "Barbarian Camp",
+	description: "Ennemy barbarian camp.",
 	baseHealth: 30,
 	buildableTerrains: [TerrainType.PLAIN, TerrainType.FOREST, TerrainType.DESERT, TerrainType.MOUNTAIN],
 	populationCost: 0,

@@ -39,7 +39,7 @@ export class Player {
         name: this.name,
         color: this.color,
         isNPC: this.isNPC,
-        civilisation: this.civilisation.serialize(),
+        civilisationName: this.civilisation.getName(),
         };
     }
 
