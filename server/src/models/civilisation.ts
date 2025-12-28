@@ -28,8 +28,24 @@ export class Civilisation {
         return new Resources(r.getFood(), r.getGold(), r.getStone(), r.getScience(), r.getArmy());
     }
 
-    public addToResources(resources: Resources) {
-        this.resources.add(resources);
+    public addToResources(incoming: Resources) {
+        const currentArmy = this.resources.getArmy();
+        const incomingArmy = incoming.getArmy();
+        
+        let allowedArmyToAdd = incomingArmy;
+        if (currentArmy + incomingArmy > this.armyCapacity) {
+            allowedArmyToAdd = Math.max(0, this.armyCapacity - currentArmy);
+        }
+
+        const finalAddition = new Resources(
+            incoming.getFood(),
+            incoming.getGold(),
+            incoming.getStone(),
+            incoming.getScience(),
+            allowedArmyToAdd
+        );
+
+        this.resources.add(finalAddition);
     }
 
     public subtractFromResources(resources: Resources) {
@@ -51,8 +67,8 @@ export class Civilisation {
         this.populationCapacity = Math.max(0, this.populationCapacity + amount);
     }
 
-    public updateArmyCapacity(amount: number): void {
-        this.armyCapacity = Math.max(0, this.armyCapacity + amount);
+    public updateArmyCapacity(): void {
+        this.armyCapacity = this.populationCapacity - this.workingPopulation;
     }
 
     public serialize() {

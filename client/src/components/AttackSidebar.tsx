@@ -1,11 +1,11 @@
 import React from 'react';
 import { ATTACK_ACTIONS, type AttackType } from '../types/attackStats';
-import type { ResourceState } from '../hooks/useResources';
 import { BaseSidebar } from './BaseSidebar';
+import type { Resources } from '../types/resources';
 
 interface AttackSidebarProps {
     tile: any;
-    resources: ResourceState;
+    resources: Resources;
     isNeighbor: boolean;
     onAttack: (type: AttackType) => void;
     onClose: () => void;

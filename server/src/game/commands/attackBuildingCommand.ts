@@ -1,4 +1,5 @@
 import { Building } from "../../models/building.js";
+import { BuildingType } from "../../models/buildingData.js";
 import { Resources } from "../../models/resources.js";
 import type { ICommand } from "../../utils/ICommand.js";
 import type { GameState } from "../gameState.js";
@@ -54,6 +55,7 @@ export class AttackBuildingCommand implements ICommand {
 		building?.takeDamage(this.troopCount);
 		if (building?.isDestroyed()) {
 			this.gameState.removeBuilding(this.tileId);
+			this.gameState.getMap().setBuilding(this.tileId, new Building(BuildingType.WATCH_TOWER, this.attackerId));
 			this.gameState.getMap().setTileOwner(this.tileId, this.attackerId);
 		}
 	}

@@ -1,4 +1,5 @@
 // utils/MapRenderer.ts
+import { BuildingType } from '../types/buildingType';
 import { BUILDING_ICONS } from '../utils/assetLoader';
 import { getHexPixelPos, drawHexagon, HEX_SIZE, hexToRgba } from '../utils/hexMath';
 
@@ -29,7 +30,7 @@ export class MapRenderer {
     this.drawTerritories(ctx, tiles, players, camera);
 
     if (selectedTileId) this.drawSelection(ctx, tiles, selectedTileId, camera);
-    this.drawBuildings(ctx, tiles, buildings, camera); // Passed tiles for coordinate lookup
+    this.drawBuildings(ctx, tiles, players, buildings, camera); // Passed tiles for coordinate lookup
   }
 
   private static drawTerrain(ctx: CanvasRenderingContext2D, tiles: any[], camera: any) {
@@ -67,7 +68,7 @@ export class MapRenderer {
     ctx.restore();
   }
 
-  private static drawBuildings(ctx: CanvasRenderingContext2D, tiles: any[], buildings: Map<string, any>, camera: any) {
+  private static drawBuildings(ctx: CanvasRenderingContext2D, tiles: any[], players: Map<string, any>, buildings: Map<string, any>, camera: any) {
     if (buildings.size === 0) return;
 
     // Optimization: Create a Map for tiles if it's currently an array
@@ -89,12 +90,24 @@ export class MapRenderer {
 
       if (this.isOffscreen(x, y, size, ctx.canvas)) return;
 
-      const icon = BUILDING_ICONS[building.type.toUpperCase()];
-      const iconSize = size * 1;
+      const originalIcon = BUILDING_ICONS[building.type.toUpperCase()];
+      let iconSize = size * 1;
+      if (building.type === BuildingType.WATCH_TOWER)
+        iconSize = size * 0.5;
 
-      if (icon && icon.complete) {
-        ctx.drawImage(icon, x - iconSize / 2, y - iconSize / 2, iconSize, iconSize);
-      } else {
+      if (originalIcon && originalIcon.complete) {
+          // Find the owner's color (default to white if not found)
+          const owner = players.get(String(building.ownerId));
+          const color = owner ? owner.color : '#ffffff';
+
+          // Get the tinted version
+          const tintedIcon = this.getTintedIcon(originalIcon, color);
+
+          let iconSize = size * 1;
+          if (building.type === BuildingType.WATCH_TOWER) iconSize = size * 0.5;
+
+          ctx.drawImage(tintedIcon, x - iconSize / 2, y - iconSize / 2, iconSize, iconSize);
+        } else {
         // Temporary fallback: Draw a circle so we can at least see where it should be
         ctx.beginPath();
         ctx.arc(x, y, size / 3, 0, Math.PI * 2);
@@ -154,7 +167,7 @@ export class MapRenderer {
       ctx.lineTo(x + size * Math.cos(angle), y + size * Math.sin(angle));
     }
     ctx.closePath();
-    ctx.fillStyle = hexToRgba(color, 0.2);
+    ctx.fillStyle = hexToRgba(color, 0.1);
     ctx.fill();
   }
 
@@ -231,5 +244,28 @@ export class MapRenderer {
     });
 
     ctx.restore();
+  }
+
+  private static tintCache = new Map<string, HTMLCanvasElement>();
+
+  private static getTintedIcon(icon: HTMLImageElement, color: string): HTMLCanvasElement {
+      const key = `${icon.src}-${color}`;
+      if (this.tintCache.has(key)) return this.tintCache.get(key)!;
+
+      const tempCanvas = document.createElement('canvas');
+      const tempCtx = tempCanvas.getContext('2d')!;
+      tempCanvas.width = icon.width;
+      tempCanvas.height = icon.height;
+
+      // 1. Draw the icon
+      tempCtx.drawImage(icon, 0, 0);
+
+      // 2. Overlay the color
+      tempCtx.globalCompositeOperation = 'source-in';
+      tempCtx.fillStyle = color;
+      tempCtx.fillRect(0, 0, tempCanvas.width, tempCanvas.height);
+
+      this.tintCache.set(key, tempCanvas);
+      return tempCanvas;
   }
 }

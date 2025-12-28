@@ -8,15 +8,18 @@ import { pixelToHex } from '../utils/hexMath';
 import { usePlayersSocket } from '../hooks/usePlayersSockets';
 import { BuildSidebar } from './BuildSidebar';
 import { socket } from '../socket';
-import { useResources } from '../hooks/useResources';
+import { useCivilisation } from '../hooks/useCivilisation';
 import { AttackSidebar } from './AttackSidebar';
 import { ATTACK_ACTIONS } from '../types/attackStats';
 import { NeutralSidebar } from './NeutralSidebar';
 import { BuildingInfoSidebar } from './BuildingInfoSidebar';
+import { HUD } from './HUD';
+import { usePlayerProduction } from '../hooks/usePlayerProduction';
+import { BuildingType } from '../types/buildingType';
 
 export const MapView: React.FC = () => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const resources = useResources();
+  const civilisation = useCivilisation();
   const [assetsLoaded, setAssetsLoaded] = useState(false);
   const [selectedTileId, setSelectedTileId] = useState<string | null>(null);
   const { tilesRef } = useTiles();
@@ -25,6 +28,7 @@ export const MapView: React.FC = () => {
   const cameraRef = useRef({ x: window.innerWidth / 2, y: window.innerHeight / 2, zoom: 1.0 });
   const mouseState = useRef({ isDragging: false });
   const selectedTileRef = useRef<string | null>(null);
+  const production = usePlayerProduction(socket.id);
 
   const handleBuild = (buildingTypeId: string) => {
   if (!selectedTileId) return;
@@ -132,7 +136,7 @@ export const MapView: React.FC = () => {
   const isEnemyTile: boolean = !!selectedTileObj && ownerId != null && String(ownerId) !== String(currentSocketId);
   const isPlayerTile: boolean = !!selectedTileObj && ownerId != null && String(ownerId) === String(currentSocketId);
 
-  const hasBuilding: boolean = !!selectedTileId && !!buildingsRef.current.get(selectedTileId);
+  const isWatchTower: boolean = !!selectedTileId && buildingsRef.current.get(selectedTileId)?.type === BuildingType.WATCH_TOWER;
 
   const isNeighborOfPlayer = selectedTileObj?.neighbors?.some((neighborId: string) => {
       const neighbor = tilesRef.current.find(t => t.id === neighborId);
@@ -141,6 +145,10 @@ export const MapView: React.FC = () => {
 
   return (
     <div style={{ position: 'relative', width: '100vw', height: '100vh', background: '#000' }}>
+      <HUD 
+        civilisation={civilisation} 
+        production={production} 
+      />
       <canvas
         ref={canvasRef}
         onMouseDown={() => (mouseState.current.isDragging = true)}
@@ -151,24 +159,24 @@ export const MapView: React.FC = () => {
         onClick={onClick}
         style={{ display: 'block', cursor: 'grab', touchAction: 'none' }}
       />
-      {selectedTileObj && isPlayerTile && !hasBuilding && (  
+      {selectedTileObj && isPlayerTile && (isWatchTower || selectedTileObj.terrain.name === "WATER") && (  
       <BuildSidebar 
           selectedTile={selectedTileObj} 
-          resources={resources} 
+          resources={civilisation.resources} 
           onBuild={handleBuild}
           onClose={() => setSelectedTileId(null)}
       />)}
-      {selectedTileObj && isPlayerTile && hasBuilding && (  
+      {selectedTileObj && isPlayerTile && !isWatchTower && (  
       <BuildingInfoSidebar 
           building={buildingsRef.current.get(selectedTileId!)!} 
-          resources={resources} 
+          resources={civilisation.resources} 
           onUpgrade={() => socket.emit('upgrade', { tileKey: selectedTileId })}
           onClose={() => setSelectedTileId(null)}
       />)}
       {selectedTileObj && isEnemyTile && (  
         <AttackSidebar 
             tile={selectedTileObj} 
-            resources={resources} 
+            resources={civilisation.resources} 
             isNeighbor={isNeighborOfPlayer}
             onAttack={(type) => socket.emit('attack', { tileKey: selectedTileId, troopCount: ATTACK_ACTIONS[type as keyof typeof ATTACK_ACTIONS].damage })}
             onClose={() => setSelectedTileId(null)}

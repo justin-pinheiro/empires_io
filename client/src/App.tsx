@@ -1,6 +1,6 @@
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import { socket } from './socket';
-import { GameScene } from './components/GameScene';
+import { MapView } from './components/MapView';
 
 function App() {
   useEffect(() => {
@@ -19,7 +19,7 @@ function App() {
 
   return (
     <div style={{ width: '100vw', height: '100vh', overflow: 'hidden' }}>
-      <GameScene />
+      <MapView />
     </div>
   );
 }

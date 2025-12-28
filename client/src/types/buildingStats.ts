@@ -18,4 +18,5 @@ export interface BuildingStats {
         army: number;
     };
     productionRate: number;
+    buildable: boolean;
 }

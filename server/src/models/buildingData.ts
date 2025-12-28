@@ -1,3 +1,4 @@
+import { tr } from "zod/locales";
 import { Resources } from "./resources.js";
 import { TerrainType } from "./terrainTypeEnum.js";
 
@@ -13,6 +14,8 @@ export enum BuildingType {
 	MARKET = "MARKET",
 	MINE = "MINE",
 	FORTIFICATIONS = "FORTIFICATIONS",
+	WATCH_TOWER = "WATCH_TOWER",
+	FISHING_ZONE = "FISHING_ZONE",
 	BARBARIAN_CAMP = "BARBARIAN_CAMP",
 }
 
@@ -28,6 +31,7 @@ export interface BuildingStats {
 	readonly production: Resources;
 	readonly productionRate: number;
 	readonly vision: number;
+	readonly buildable: boolean;
 }
 
 /**
@@ -47,6 +51,7 @@ export const BUILDING_STATS: Readonly<Record<BuildingType, BuildingStats>> = Obj
 	production: new Resources(1, 1, 1, 1, 1),
 	productionRate: 1,
 	vision: 3,
+	buildable: false,
 	},
 	[BuildingType.FARM]: {
 	name: "Farm",
@@ -58,8 +63,9 @@ export const BUILDING_STATS: Readonly<Record<BuildingType, BuildingStats>> = Obj
 	armyCapacityUpgrade: 0,
 	populationCapacityUpgrade: 0,
 	production: new Resources(1, 0, 0, 0, 0),
-	productionRate: 0.4,
-	vision: 2,
+	productionRate: 1,
+	vision: 1,
+	buildable: true,
 	},
 	[BuildingType.HOUSE]: {
 	name: "House",
@@ -72,7 +78,8 @@ export const BUILDING_STATS: Readonly<Record<BuildingType, BuildingStats>> = Obj
 	populationCapacityUpgrade: 5,
 	production: Resources.zero(),
 	productionRate: 0,
-	vision: 2,
+	vision: 1,
+	buildable: true,
 	},
 	[BuildingType.BARRACKS]: {
 	name: "Barracks",
@@ -84,8 +91,9 @@ export const BUILDING_STATS: Readonly<Record<BuildingType, BuildingStats>> = Obj
 	armyCapacityUpgrade: 0,
 	populationCapacityUpgrade: 0,
 	production: new Resources(0, 0, 0, 0, 1),
-	productionRate: 0.8,
-	vision: 2,
+	productionRate: 1,
+	vision: 1,
+	buildable: true,
 	},
 	[BuildingType.LIBRARY]: {
 	name: "Library",
@@ -97,8 +105,9 @@ export const BUILDING_STATS: Readonly<Record<BuildingType, BuildingStats>> = Obj
 	armyCapacityUpgrade: 0,
 	populationCapacityUpgrade: 0,
 	production: new Resources(0, 0, 0, 1, 0),
-	productionRate: 0.5,
-	vision: 2,
+	productionRate: 1,
+	vision: 1,
+	buildable: true,
 	},
 	[BuildingType.MARKET]: {
 	name: "Market",
@@ -110,8 +119,9 @@ export const BUILDING_STATS: Readonly<Record<BuildingType, BuildingStats>> = Obj
 	armyCapacityUpgrade: 0,
 	populationCapacityUpgrade: 0,
 	production: new Resources(0, 1, 0, 0, 0),
-	productionRate: 0.5,
-	vision: 2,
+	productionRate: 1,
+	vision: 1,
+	buildable: true,
 	},
 	[BuildingType.MINE]: {
 	name: "Mine",
@@ -123,8 +133,9 @@ export const BUILDING_STATS: Readonly<Record<BuildingType, BuildingStats>> = Obj
 	armyCapacityUpgrade: 0,
 	populationCapacityUpgrade: 0,
 	production: new Resources(0, 0, 1, 0, 0),
-	productionRate: 0.5,
-	vision: 2,
+	productionRate: 1,
+	vision: 1,
+	buildable: true,
 	},
 	[BuildingType.FORTIFICATIONS]: {
 	name: "Fortifications",
@@ -138,6 +149,35 @@ export const BUILDING_STATS: Readonly<Record<BuildingType, BuildingStats>> = Obj
 	production: Resources.zero(),
 	productionRate: 0,
 	vision: 3,
+	buildable: true,
+	},
+	[BuildingType.WATCH_TOWER]: {
+	name: "Watch tower",
+	description: "Building used to claim territory. Can be replaced by another building.",
+	baseHealth: 100,
+	buildableTerrains: [TerrainType.PLAIN, TerrainType.FOREST, TerrainType.DESERT, TerrainType.MOUNTAIN],
+	populationCost: 0,
+	resourcesCost: Resources.zero(),
+	armyCapacityUpgrade: 0,
+	populationCapacityUpgrade: 0,
+	production: Resources.zero(),
+	productionRate: 0,
+	vision: 1,
+	buildable: false,
+	},
+	[BuildingType.FISHING_ZONE]: {
+	name: "Fishing zone",
+	description: "",
+	baseHealth: 40,
+	buildableTerrains: [TerrainType.WATER],
+	populationCost: 1,
+	resourcesCost: new Resources(0, 10, 0, 0, 0),
+	armyCapacityUpgrade: 0,
+	populationCapacityUpgrade: 0,
+	production: new Resources(1, 0, 0, 0, 0),
+	productionRate: 1,
+	vision: 1,
+	buildable: true,
 	},
 	[BuildingType.BARBARIAN_CAMP]: {
 	name: "Barbarian Camp",
@@ -150,6 +190,7 @@ export const BUILDING_STATS: Readonly<Record<BuildingType, BuildingStats>> = Obj
 	populationCapacityUpgrade: 0,
 	production: Resources.zero(),
 	productionRate: 0,
-	vision: 2,
+	vision: 0,
+	buildable: false,
 	},
 });

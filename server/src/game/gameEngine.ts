@@ -22,7 +22,6 @@ export class GameEngine extends EventEmitter {
     private readonly commandHandler: CommandHandler
   ) {
     super();
-    // Using 1 second as the tick rate for production/logic
     this.loop = new GameLoop((dt) => this.update(dt), 1);
     this.barbarianManager = new BarbarianManager(this.state, this);
   }
@@ -32,13 +31,9 @@ export class GameEngine extends EventEmitter {
     this.loop.start();
   }
 
-  private update(dt: number): void {
-    Logger.debug(`Engine Update | dt: ${dt.toFixed(3)}s`);
-    
+  private update(dt: number): void {    
     this.state.update(dt);
     this.barbarianManager.update(dt);
-
-    // Broadcast changes to the Socket/Network layer
     this.emit('resourcesUpdate');
     this.emit('buildingsUpdate');
   }

@@ -1,4 +1,4 @@
-import { BUILDING_STATS } from "../../models/buildingData.js";
+import { BUILDING_STATS, BuildingType } from "../../models/buildingData.js";
 import type { ICommand } from "../../utils/ICommand.js";
 import type { GameState } from "../gameState.js";
 
@@ -22,7 +22,7 @@ export class PlaceBuildingCommand implements ICommand {
     }
 
     const availablePopulation = player.getCivilisation().getPopulationCapacity() - player.getCivilisation().getWorkingPopulation();
-    if (availablePopulation <= 0) {
+    if (stats.populationCost > availablePopulation) {
         return "Insufficient population to build " + stats.name;
     }
 
@@ -33,7 +33,7 @@ export class PlaceBuildingCommand implements ICommand {
       return "Tile " + this.tileId +  " does not exist."
     }
 
-    if (map.getBuilding(this.tileId)) {
+    if (map.getBuilding(this.tileId) && map.getBuilding(this.tileId)?.type != BuildingType.WATCH_TOWER) {
         return "Tile is already occupied.";
     }
 

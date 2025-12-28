@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react';
 import { socket } from '../socket';
-import type { Building } from '../types/buildingStats';
+import type { Building } from '../types/building';
 
 export const useBuildings = () => {
   const buildingsRef = useRef<Map<string, Building>>(new Map());

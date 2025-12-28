@@ -38,7 +38,14 @@ export const BuildingInfoSidebar: React.FC<BuildingInfoSidebarProps> = ({
                     <div style={styles.resGrid}>
                         {Object.entries(building.production).map(([res, val]) => {
                             if (val === 0) return null;
-                            return <span key={res}>{res}: +{(val as number) * building.productionRate}</span>;
+                            return <span key={res}>
+                                {res === 'food' && '🌾'}
+                                {res === 'gold' && '💰'}
+                                {res === 'stone' && '🪨'}
+                                {res === 'science' && '🧪'}
+                                {res === 'army' && '⚔️'}
+                                +{(val as number) * building.productionRate}
+                            </span>;
                         })}
                     </div>
                 </div>

@@ -53,26 +53,26 @@ export const setupSocketHandlers = (io: Server, game: GameEngine) => {
             game.removePlayer(socket.id);
             broadcastPlayersUpdate(io, game);
             broadcastBuildingsUpdates(io, game);
-            broadcastResourcesUpdates(io, game);
+            broadcastCivilisationUpdates(io, game);
         });
         
         socket.on('build', ( { tileKey, buildingTypeKey } ) => {
             game.placeBuilding(socket.id, buildingTypeKey, tileKey);
             broadcastTilesUpdates(io, game);
             broadcastBuildingsUpdates(io, game);
-            broadcastResourcesUpdates(io, game);
+            broadcastCivilisationUpdates(io, game);
         });
-
+        
         socket.on('attack', ( { tileKey, troopCount } ) => {
             game.attackBuilding(socket.id, tileKey, troopCount);
             broadcastTilesUpdates(io, game);
             broadcastBuildingsUpdates(io, game);
-            broadcastResourcesUpdates(io, game);
+            broadcastCivilisationUpdates(io, game);
         });
     });
 
     game.on('resourcesUpdate', () => {
-        broadcastResourcesUpdates(io, game);
+        broadcastCivilisationUpdates(io, game);
     });
 
     game.on('buildingsUpdate', () => {
@@ -80,23 +80,20 @@ export const setupSocketHandlers = (io: Server, game: GameEngine) => {
     });
 };
 
-function broadcastResourcesUpdates(io: Server, game: GameEngine) {
-    Logger.debug(`Broadcasting resources updates for ${socketsIds.length} sockets`);
+function broadcastCivilisationUpdates(io: Server, game: GameEngine) {
     for (const id of socketsIds) {
         const player = game.getPlayer(id);
-        io.to(id).emit('resourcesUpdate', player?.getCivilisation().getResources().serialize());
+        io.to(id).emit('civilisationUpdate', player?.getCivilisation().serialize());
     }
 }
 
 function broadcastBuildingsUpdates(io: Server, game: GameEngine) {
-    Logger.debug(`Broadcasting buildings updates for ${socketsIds.length} sockets`);
     socketsIds.forEach(id => {
         io.to(id).emit('buildingsUpdate', game.getVisibleBuildingsForPlayer(id));
     });
 }
 
 function broadcastTilesUpdates(io: Server, game: GameEngine) {
-    Logger.debug(`Broadcasting tiles updates for ${socketsIds.length} sockets`);
     for (const id of socketsIds) {
         const tiles = game.getVisibleTilesForPlayer(id);
         io.to(id).emit('mapUpdate', tiles);
@@ -104,7 +101,6 @@ function broadcastTilesUpdates(io: Server, game: GameEngine) {
 }
 
 function broadcastPlayersUpdate(io: Server, game: GameEngine) {
-    Logger.debug(`Broadcasting players updates for ${socketsIds.length} sockets`);
     for (const id of socketsIds) {
         io.to(id).emit('playersUpdate', Object.fromEntries(game.getPlayers()));
     }

@@ -2,7 +2,7 @@ import { Player } from "../models/player.js";
 import { GameMap } from "../models/map.js";
 import { Building } from "../models/building.js";
 import { Civilisation } from "../models/civilisation.js";
-import type { BuildingType } from "../models/buildingData.js";
+import { BUILDING_STATS, BuildingType } from "../models/buildingData.js";
 
 export class GameState {
   private players: Map<string, Player> = new Map();
@@ -59,7 +59,13 @@ export class GameState {
     civ.subtractFromResources(building.stats.resourcesCost);
     this.map.setBuilding(tileId, building);
     this.map.setTileOwner(tileId, playerId);
-    this.map.setNeighboringTilesOwner(tileId, playerId);
+    
+    this.map.getTile(tileId)?.getNeighbors().forEach(neighbor => {
+      if (neighbor && this.map.getTile(neighbor)?.getOwnerId() === null) 
+        this.map.getTile(neighbor)?.setOwnerId(playerId);
+        if (neighbor && !this.map.getBuilding(neighbor) && BUILDING_STATS.WATCH_TOWER.buildableTerrains.includes((this.map.getTile(neighbor)?.getTerrainType()!))) 
+          this.map.setBuilding(neighbor, new Building(BuildingType.WATCH_TOWER, playerId));
+      })
 
     this.applyBuildingEffects(civ, building, 1);
   }
@@ -81,9 +87,9 @@ export class GameState {
    */
   private applyBuildingEffects(civ: Civilisation, building: Building, multiplier: number): void {
     const s = building.stats;
-    civ.updateArmyCapacity(s.armyCapacityUpgrade * multiplier);
     civ.updateWorkingPopulation(s.populationCost * multiplier);
     civ.updatePopulationCapacity(s.populationCapacityUpgrade * multiplier);
+    civ.updateArmyCapacity();
   }
 
   // --- Player Management ---

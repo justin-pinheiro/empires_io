@@ -8,6 +8,8 @@ export const BuildingType = {
     MINE: "MINE",
     FORTIFICATIONS: "FORTIFICATIONS",
     BARBARIAN_CAMP: "BARBARIAN_CAMP",
+    FISHING_ZONE: "FISHING_ZONE",
+    WATCH_TOWER: "WATCH_TOWER",
 } as const;
 
 export type BuildingType = typeof BuildingType[keyof typeof BuildingType];

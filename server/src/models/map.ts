@@ -134,13 +134,6 @@ export class GameMap {
         if (!this.tiles.has(tileKey)) throw new Error(`Tile ${tileKey} does not exist.`);
             this.getTile(tileKey)!.removeOwnerId();
     }
-    
-    public setNeighboringTilesOwner(tileKey: string, playerId: string) {
-        if (!this.tiles.has(tileKey)) throw new Error(`Tile ${tileKey} does not exist.`);
-        this.getTile(tileKey)?.getNeighbors().forEach(neighbor => {
-            if (neighbor && this.getTile(neighbor)?.getOwnerId() === null) this.getTile(neighbor)?.setOwnerId(playerId);
-        })
-    }
 
     public removeBuilding(tileKey: string): void {
         this.buildings.delete(tileKey);

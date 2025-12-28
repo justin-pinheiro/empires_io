@@ -1,5 +1,5 @@
-import type { ResourceState } from "../hooks/useResources";
 import type { BuildingType } from "./buildingType";
+import type { Resources } from "./resources";
 
 export interface Building {
     ownerId: string,
@@ -7,7 +7,7 @@ export interface Building {
     name: string,
     description: string,
     health: { current: number, max: number },
-    production: ResourceState,
+    production: Resources,
     productionRate: number,
-    isDestroyed: boolean,
+    isDestroyed: boolean
 }

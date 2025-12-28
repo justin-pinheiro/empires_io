@@ -1,12 +1,12 @@
 import React from 'react';
 import { useGameConstants } from '../hooks/useGameConstants';
 import type { BuildingStats } from '../types/buildingStats';
-import type { ResourceState } from '../hooks/useResources';
 import { BaseSidebar } from './BaseSidebar';
+import type { Resources } from '../types/resources';
 
 interface BuildSidebarProps {
     selectedTile: any;
-    resources: ResourceState;
+    resources: Resources;
     onBuild: (type: string) => void;
     onClose: () => void;
 }
@@ -35,14 +35,14 @@ export const BuildSidebar: React.FC<BuildSidebarProps> = ({
             title="Construction" 
             subtitle={`Terrain: ${selectedTile.terrain.name}`} 
             onClose={onClose}
-            borderColor="#4CAF50" // Green border for building
+            borderColor="#4CAF50"
         >
             <div style={styles.scrollArea}>
                 {Object.entries(constants.buildingStats as Record<string, BuildingStats>).map(([key, stats]) => {
-                    // 1. Hide Admin/System buildings
-                    if (key === "BARBARIAN_CAMP" || key === "CAPITAL") return null;
+                    
+                    console.log(stats)
+                    if (!stats.buildable) return null;
 
-                    // 2. STRICT FILTER: Completely remove if not buildable on this terrain
                     const isCorrectTerrain = stats.buildableTerrains.includes(selectedTile.terrain.name);
                     if (!isCorrectTerrain) return null;
 
@@ -55,14 +55,12 @@ export const BuildSidebar: React.FC<BuildSidebarProps> = ({
                                 <span style={styles.hp}>❤️ {stats.baseHealth} HP</span>
                             </div>
 
-                            {/* White Description */}
                             <p style={styles.description}>{stats.description}</p>
 
                             <div style={styles.costGrid}>
                                 {Object.entries(stats.resourcesCost).map(([res, amount]) => {
                                     if (amount === 0) return null;
                                     
-                                    // Cost logic: Print RED if insufficient
                                     const hasEnough = (resources as any)[res] >= (amount as number);
                                     
                                     return (
