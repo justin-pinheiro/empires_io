@@ -11,24 +11,24 @@ describe('Civilisation Class', () => {
 
   test('should initialize with name and zero stats', () => {
     expect(civ.getName()).toBe('Rome');
-    expect(civ.getPopulationCapacity()).toBe(0);
+    expect(civ.getResourcesCapacity().getWorkers()).toBe(0);
   });
 
-  test('updateWorkingPopulation should not exceed capacity', () => {
-    civ.updatePopulationCapacity(10);
-    civ.updateWorkingPopulation(15); // Try to add more than capacity
+  test('addToResources workers should not exceed capacity', () => {
+    civ.updateResourcesCapacity(new Resources(0,0,0,0,0,10), 1);
+    civ.addToResources(new Resources(0,0,0,0,0,15)); // Try to add more than capacity
 
-    expect(civ.getWorkingPopulation()).toBe(10);
+    expect(civ.getResources().getWorkers()).toBe(10);
   });
 
-  test('updateWorkingPopulation should not drop below zero', () => {
-    civ.updateWorkingPopulation(-5);
-    expect(civ.getWorkingPopulation()).toBe(0);
+  test('subtractFromResources workers should not drop below zero', () => {
+    civ.subtractFromResources(new Resources(0,0,0,0,0,5));
+    expect(civ.getResources().getWorkers()).toBe(0);
   });
 
   test('getResources should return a copy, not a reference', () => {
     const res = civ.getResources();
-    res.add(new Resources(100, 100)); // Modify the returned object
+    res.add(new Resources(100, 100, 0, 0, 0, 0)); // Modify the returned object
     
     // The internal civ resources should still be 0
     expect(civ.getResources().getFood()).toBe(0);

@@ -13,8 +13,8 @@ interface AttackSidebarProps {
 
 export const AttackSidebar: React.FC<AttackSidebarProps> = ({ tile, resources, isNeighbor, onAttack, onClose }) => {
     
-    const canAfford = (armyCost: number) => {
-        return resources.army >= armyCost;
+    const canAfford = (soldiersCost: number) => {
+        return resources.soldiers >= soldiersCost;
     };
 
     return (
@@ -29,7 +29,7 @@ export const AttackSidebar: React.FC<AttackSidebarProps> = ({ tile, resources, i
                     <p style={styles.warningText}>⚠️ You can only attack tiles adjacent to your borders.</p>
                 ) : (
                     Object.entries(ATTACK_ACTIONS).map(([key, action]) => {
-                        const affordable = canAfford(action.armyCost);
+                        const affordable = canAfford(action.soldiersCost);
                         return (
                             <div key={key} style={styles.card}>
                                 <div style={styles.cardHeader}>
@@ -39,7 +39,7 @@ export const AttackSidebar: React.FC<AttackSidebarProps> = ({ tile, resources, i
                                 <p style={styles.description}>{action.description}</p>
                                 
                                 <div style={styles.costRow}>
-                                    {action.armyCost > 0 && <span style={{color: resources.army >= action.armyCost ? '#fff' : '#ff4d4d'}}>⚔️{action.armyCost}</span>}
+                                    {action.soldiersCost > 0 && <span style={{color: resources.soldiers >= action.soldiersCost ? '#fff' : '#ff4d4d'}}>⚔️{action.soldiersCost}</span>}
                                 </div>
 
                                 <button 

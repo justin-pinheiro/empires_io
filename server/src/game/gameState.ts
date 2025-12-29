@@ -66,11 +66,12 @@ export class GameState {
     const building = new Building(type, playerId);
     const civ = player.getCivilisation();
 
-    if (!civ.getResources().hasEnough(building.stats.resourcesCost)) {
-      throw new Error("Insufficient resources");
+    if (!civ.getResources().hasEnough(building.stats.resourcesToBuild)) {
+      throw new Error("Insufficient resources to build");
     }
 
-    civ.subtractFromResources(building.stats.resourcesCost);
+    civ.subtractFromResources(building.stats.resourcesToBuild);
+    civ.updateResourcesCapacity(building.stats.resourcesCapacityUpgrade, 1);
     this.map.setBuilding(tileId, building);
     this.map.setTileOwner(tileId, playerId);
     
@@ -80,8 +81,6 @@ export class GameState {
         if (neighbor && !this.map.getBuilding(neighbor))
           this.map.setBuilding(neighbor, new Building(BuildingType.OUTPOST, playerId));
       })
-
-    this.applyBuildingEffects(civ, building, 1);
   }
 
   public removeBuilding(tileId: string): void {
@@ -90,26 +89,10 @@ export class GameState {
 
     const player = this.getPlayer(building.getOwnerId());
     if (player) {
-      this.applyBuildingEffects(player.getCivilisation(), building, -1);
+      player.getCivilisation().updateResourcesCapacity(building.stats.resourcesCapacityUpgrade, 1);
     }
 
     this.map.removeBuilding(tileId);
-  }
-
-  /**
-   * Internal helper to toggle building bonuses on/off
-   */
-  private applyBuildingEffects(civ: Civilisation, building: Building, multiplier: number): void {
-    const s = building.stats;
-    civ.updateWorkingPopulation(s.populationCost * multiplier);
-    civ.updatePopulationCapacity(s.populationCapacityUpgrade * multiplier);
-    civ.updateResourcesCapacity(new Resources(
-      s.resourcesCapacityUpgrade.getFood() * multiplier,
-      s.resourcesCapacityUpgrade.getGold() * multiplier,
-      s.resourcesCapacityUpgrade.getStone() * multiplier,
-      s.resourcesCapacityUpgrade.getScience() * multiplier,
-      s.resourcesCapacityUpgrade.getArmy() * multiplier,
-    ));
   }
 
   // --- Player Management ---

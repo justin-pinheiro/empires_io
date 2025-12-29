@@ -7,6 +7,7 @@ export interface Building {
     name: string,
     description: string,
     health: { current: number, max: number },
+    resourcesToMaintain: Resources,
     production: Resources,
     productionRate: number,
     isDestroyed: boolean

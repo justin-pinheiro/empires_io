@@ -5,7 +5,7 @@ export class Resources {
   constructor(
     private food: number = 0,
     private gold: number = 0,
-    private stone: number = 0,
+    private materials: number = 0,
     private science: number = 0,
     private soldiers: number = 0,
     private workers: number = 0
@@ -15,40 +15,43 @@ export class Resources {
    * Static factory to create a "zeroed" resource object.
    */
   static zero(): Resources {
-    return new Resources(0, 0, 0, 0, 0);
+    return new Resources(0, 0, 0, 0, 0, 0);
   }
 
   // --- Getters ---
 
   public getFood() { return this.food; }
   public getGold() { return this.gold; }
-  public getStone() { return this.stone; }
+  public getMaterials() { return this.materials; }
   public getScience() { return this.science; }
-  public getArmy() { return this.army; }
+  public getSoldiers() { return this.soldiers; }
+  public getWorkers() { return this.workers; }
 
 // --- Arithmetic ---
 
   /**
    * Adds another resource set to this one (in-place).
    */
-  public add(other: Resources): void {
-    this.food += other.food;
-    this.gold += other.gold;
-    this.stone += other.stone;
-    this.science += other.science;
-    this.army += other.army;
+  public add(incoming: Resources): void {
+    this.food += incoming.food;
+    this.gold += incoming.gold;
+    this.materials += incoming.materials;
+    this.science += incoming.science;
+    this.soldiers += incoming.soldiers;
+    this.workers += incoming.workers;
   }
 
   /**
    * Subtracts another resource set (in-place).
    * Note: This allows negative values unless you add Math.max(0, ...) logic.
    */
-  public subtract(other: Resources): void {
-    this.food -= other.food;
-    this.gold -= other.gold;
-    this.stone -= other.stone;
-    this.science -= other.science;
-    this.army -= other.army;
+  public subtract(incoming: Resources): void {
+    this.food -= incoming.food;
+    this.gold -= incoming.gold;
+    this.materials -= incoming.materials;
+    this.science -= incoming.science;
+    this.soldiers -= incoming.soldiers;
+    this.workers -= incoming.workers;
   }
 
   /**
@@ -58,9 +61,10 @@ export class Resources {
     return (
       this.food >= cost.food &&
       this.gold >= cost.gold &&
-      this.stone >= cost.stone &&
+      this.materials >= cost.materials &&
       this.science >= cost.science &&
-      this.army >= cost.army
+      this.soldiers >= cost.soldiers &&
+      this.workers >= cost.workers
     );
   }
 
@@ -71,9 +75,10 @@ export class Resources {
     return {
       food: Math.floor(this.food),
       gold: Math.floor(this.gold),
-      stone: Math.floor(this.stone),
+      materials: Math.floor(this.materials),
       science: Math.floor(this.science),
-      army: Math.floor(this.army),
+      soldiers: Math.floor(this.soldiers),
+      workers: Math.floor(this.workers),
     };
   }
 

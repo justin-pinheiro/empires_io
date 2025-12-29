@@ -40,7 +40,7 @@ export class BarbarianManager {
     for (const id of players) {
       const civ = this.state.getPlayer(id)?.getCivilisation();
       if (civ) {
-        totalAdditional += Math.floor(civ.getPopulationCapacity() / BARBARIAN_POP_PER_CAMP);
+        totalAdditional += Math.floor(civ.getResourcesCapacity().getWorkers() / BARBARIAN_POP_PER_CAMP);
       }
     }
 

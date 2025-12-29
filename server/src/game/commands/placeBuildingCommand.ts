@@ -17,13 +17,13 @@ export class PlaceBuildingCommand implements ICommand {
     const stats = BUILDING_STATS[this.buildingType];
     if (!stats) return "Invalid building type : " + this.tileId + ".";
 
-    if (!player.getCivilisation().getResources().hasEnough(stats.resourcesCost)) {
+    if (!player.getCivilisation().getResources().hasEnough(stats.resourcesToBuild)) {
         return "Insufficient resources to build " + stats.name;
     }
 
-    const availablePopulation = player.getCivilisation().getPopulationCapacity() - player.getCivilisation().getWorkingPopulation();
-    if (stats.populationCost > availablePopulation) {
-        return "Insufficient population to build " + stats.name;
+    const availableWorkers = player.getCivilisation().getResourcesCapacity().getWorkers() - player.getCivilisation().getResources().getWorkers();
+    if (stats.resourcesToBuild.getWorkers() > availableWorkers) {
+        return "Insufficient available workers to build " + stats.name;
     }
 
     const map = this.gameState.getMap()

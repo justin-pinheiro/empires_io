@@ -3,19 +3,19 @@ export const ATTACK_ACTIONS = {
     SKIRMISH: {
         name: "Skirmish",
         description: "A quick raid to weaken defenses.",
-        armyCost: 10,
+        soldiersCost: 10,
         damage: 10
     },
     ASSAULT: {
         name: "Assault",
         description: "Battle using infantry.",
-        armyCost: 50,
+        soldiersCost: 50,
         damage: 50
     },
     SIEGE: {
         name: "Siege",
         description: "Long and slow fight using machinery.",
-        armyCost: 100,
+        soldiersCost: 100,
         damage: 100
     },
 } as const;

@@ -1,22 +1,15 @@
+import type { Resources } from "./resources";
+
 export interface BuildingStats {
     name: string;
     description: string;
     baseHealth: number;
     buildableTerrains: string[];
-    resourcesCost: {
-        food: number;
-        gold: number;
-        stone: number;
-        science: number;
-        army: number;
-    };
-    production: {
-        food: number;
-        gold: number;
-        stone: number;
-        science: number;
-        army: number;
-    };
+    resourcesToBuild: Resources;
+    resourcesToMaintain: Resources;
+	resourcesCapacityUpgrade: Resources;
+    production: Resources;
     productionRate: number;
+	vision: number;
     buildable: boolean;
 }

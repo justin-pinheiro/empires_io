@@ -3,7 +3,6 @@ import { useGameConstants } from '../hooks/useGameConstants';
 import type { BuildingStats } from '../types/buildingStats';
 import { BaseSidebar } from './BaseSidebar';
 import type { Resources } from '../types/resources';
-import type { BuildingType } from '../types/buildingType';
 
 interface BuildSidebarProps {
     selectedTile: any;
@@ -21,13 +20,14 @@ export const BuildSidebar: React.FC<BuildSidebarProps> = ({
     const constants = useGameConstants();
     if (!constants) return null;
 
-    const canAfford = (cost: any) => {
+    const canAfford = (cost: Resources) => {
         return (
             resources.food >= (cost.food || 0) &&
             resources.gold >= (cost.gold || 0) &&
-            resources.stone >= (cost.stone || 0) &&
+            resources.materials >= (cost.materials || 0) &&
             resources.science >= (cost.science || 0) &&
-            resources.army >= (cost.army || 0)
+            resources.soldiers >= (cost.soldiers || 0) &&
+            resources.workers >= (cost.workers || 0)
         );
     };
 
@@ -46,7 +46,7 @@ export const BuildSidebar: React.FC<BuildSidebarProps> = ({
                     const isCorrectTerrain = stats.buildableTerrains.includes(selectedTile.terrain.name);
                     if (!isCorrectTerrain) return null;
 
-                    const affordable = canAfford(stats.resourcesCost);
+                    const affordable = canAfford(stats.resourcesToBuild);
 
                     return (
                         <div key={key} style={styles.card}>
@@ -58,7 +58,7 @@ export const BuildSidebar: React.FC<BuildSidebarProps> = ({
                             <p style={styles.description}>{stats.description}</p>
 
                             <div style={styles.costGrid}>
-                                {Object.entries(stats.resourcesCost).map(([res, amount]) => {
+                                {Object.entries(stats.resourcesToBuild).map(([res, amount]) => {
                                     if (amount === 0) return null;
                                     
                                     const hasEnough = (resources as any)[res] >= (amount as number);
@@ -71,9 +71,10 @@ export const BuildSidebar: React.FC<BuildSidebarProps> = ({
                                         }}>
                                             {res === 'food' && '🌾'}
                                             {res === 'gold' && '💰'}
-                                            {res === 'stone' && '🪨'}
+                                            {res === 'materials' && '🪵'}
                                             {res === 'science' && '🧪'}
-                                            {res === 'army' && '⚔️'}
+                                            {res === 'soldiers' && '⚔️'}
+                                            {res === 'workers' && '🛠️'}
                                             {amount}
                                         </span>
                                     );

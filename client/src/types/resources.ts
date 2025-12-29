@@ -1,7 +1,8 @@
 export interface Resources {
   food: number;
   gold: number;
-  stone: number;
+  materials: number;
   science: number;
-  army: number;
+  soldiers: number;
+  workers: number;
 }

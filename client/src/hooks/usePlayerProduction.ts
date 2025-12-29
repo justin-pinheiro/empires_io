@@ -6,7 +6,7 @@ export const usePlayerProduction = (playerId: string | undefined) => {
     const { buildingsRef } = useBuildings();
 
     const totalProduction = useMemo(() => {
-        const totals: Resources = { food: 0, gold: 0, stone: 0, science: 0, army: 0 };
+        const totals: Resources = { food: 0, gold: 0, materials: 0, science: 0, soldiers: 0, workers: 0 };
 
         if (!playerId) return totals;
 
@@ -16,9 +16,10 @@ export const usePlayerProduction = (playerId: string | undefined) => {
                 
                 totals.food += building.production.food * rate;
                 totals.gold += building.production.gold * rate;
-                totals.stone += building.production.stone * rate;
+                totals.materials += building.production.materials * rate;
                 totals.science += building.production.science * rate;
-                totals.army += building.production.army * rate;
+                totals.soldiers += building.production.soldiers * rate;
+                totals.workers += building.production.workers * rate;
             }
         });
 

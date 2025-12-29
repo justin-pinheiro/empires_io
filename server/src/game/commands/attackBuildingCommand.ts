@@ -42,7 +42,7 @@ export class AttackBuildingCommand implements ICommand {
 		if (!isAttackerNeighbor)
 			return "Cannot attack building on tile " + this.tileId + " : not a neighbor."
 
-		if (attacker.getCivilisation().getResources().getArmy() < this.troopCount)
+		if (attacker.getCivilisation().getResources().getSoldiers() < this.troopCount)
 			return "Insufficient army to attack with " + this.troopCount + " troops.";
 
 		return null

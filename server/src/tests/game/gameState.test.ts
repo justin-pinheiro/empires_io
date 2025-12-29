@@ -22,12 +22,12 @@ describe('GameState integration', () => {
     // (100 starting + 4 produced)
   });
 
-  test('should update population capacity when house is built', () => {
+  test('should update workers capacity when house is built', () => {
     const civ = state.getPlayer(P1)!.getCivilisation();
-    const initialCap = civ.getPopulationCapacity();
+    const initialCap = civ.getResourcesCapacity().getWorkers();
     
     state.addBuilding(P1, BuildingType.HOUSE, '1,0');
     
-    expect(civ.getPopulationCapacity()).toBe(initialCap + 5);
+    expect(civ.getResourcesCapacity().getWorkers()).toBe(initialCap + 5);
   });
 });

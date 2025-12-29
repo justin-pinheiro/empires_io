@@ -50,23 +50,20 @@ export class Building {
 
   /**
    * Calculates resources produced over a specific time delta (dt).
+   * Subtract buildings maintenance cost.
    * Note: This returns a new Resources object representing the "income".
    */
-  public calculateYield(dt: number, bonus_multiplier: number): Resources {
+  public calculateYield(dt: number, production_multiplier: number): Resources {
     const rate = this.stats.productionRate;
-    
-    // If rate is 0 or it's a static one-time production, return raw stats or zero
-    if (rate === 0) return Resources.zero();
-
-    const multiplier = rate * dt * bonus_multiplier;
-    const base = this.stats.production;
+    const multiplier = rate * dt * production_multiplier;
 
     return new Resources(
-      base.getFood() * multiplier,
-      base.getGold() * multiplier,
-      base.getStone() * multiplier,
-      base.getScience() * multiplier,
-      base.getArmy() * multiplier
+      (this.stats.production.getFood() * multiplier) - this.stats.resourcesToMaintain.getFood(),
+      (this.stats.production.getGold() * multiplier) - this.stats.resourcesToMaintain.getGold(),
+      (this.stats.production.getMaterials() * multiplier) - this.stats.resourcesToMaintain.getMaterials(),
+      (this.stats.production.getScience() * multiplier) - this.stats.resourcesToMaintain.getScience(),
+      (this.stats.production.getSoldiers() * multiplier) - this.stats.resourcesToMaintain.getSoldiers(),
+      (this.stats.production.getWorkers() * multiplier) - this.stats.resourcesToMaintain.getWorkers(),
     );
   }
 
@@ -79,6 +76,7 @@ export class Building {
       name: this.stats.name,
       description: this.stats.description,
       health: this.getHealth(),
+      resourcesToMaintain: this.stats.resourcesToMaintain,
       production: this.stats.production.serialize(),
       productionRate: this.stats.productionRate,
       isDestroyed: this.isDestroyed()

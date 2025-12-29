@@ -12,16 +12,16 @@ interface HUDProps {
 export const GameHUD: React.FC<HUDProps> = ({ civilisation, production, nextAge }) => {
     const stateItems = [
         { 
-            label: 'Pop', 
-            value: `${Math.floor(civilisation.workingPopulation)}/${Math.floor(civilisation.populationCapacity)}`, 
+            label: 'Workers', 
+            value: `${Math.floor(civilisation.resources.workers)}/${Math.floor(civilisation.resourcesCapacity.workers)}`, 
             production: null,
-            icon: '👥', 
+            icon: '🛠️', 
             color: '#a162e9' 
         },
         { 
-            label: 'Army',
-            value: `${Math.floor(civilisation.resources.army)}/${Math.floor(civilisation.resourcesCapacity.army)}`, 
-            production: production.army, 
+            label: 'Soldiers',
+            value: `${Math.floor(civilisation.resources.soldiers)}/${Math.floor(civilisation.resourcesCapacity.soldiers)}`, 
+            production: production.soldiers,
             icon: '⚔️', 
             color: '#ff4d4d' 
         },
@@ -42,10 +42,10 @@ export const GameHUD: React.FC<HUDProps> = ({ civilisation, production, nextAge 
             color: '#ffd700' 
         },
         { 
-            label: 'Stone', 
-            value: `${Math.floor(civilisation.resources.stone)}/${Math.floor(civilisation.resourcesCapacity.stone)}`,
-            production: production.stone, 
-            icon: '🪨', 
+            label: 'Materials', 
+            value: `${Math.floor(civilisation.resources.materials)}/${Math.floor(civilisation.resourcesCapacity.materials)}`,
+            production: production.materials, 
+            icon: '🪵', 
             color: '#aaaaaa' 
         }
     ];
@@ -74,9 +74,9 @@ export const GameHUD: React.FC<HUDProps> = ({ civilisation, production, nextAge 
                 <span style={labelStyle}>{item.label}</span>
                 <div style={valueContainerStyle}>
                     <span style={{ ...valueStyle, color: item.color }}>{item.value}</span>
-                    {item.production !== null && item.production > 0 && (
+                    {item.production != null && (
                         <span style={{ ...productionStyle, color: item.color }}>
-                            +{item.production.toFixed(1)}
+                            {item.production >= 0 ? '+' : ''}{item.production.toFixed(1)}
                         </span>
                     )}
                 </div>
@@ -162,7 +162,7 @@ const valueContainerStyle: React.CSSProperties = {
 };
 
 const valueStyle: React.CSSProperties = {
-    fontSize: '18px',
+    fontSize: '16px',
     fontWeight: 'bold',
     fontFamily: '"JetBrains Mono", monospace',
     textShadow: '0 2px 4px rgba(0,0,0,0.3)',

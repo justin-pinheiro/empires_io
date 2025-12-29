@@ -17,7 +17,7 @@ describe('Resources Class', () => {
 
     assert.strictEqual(pool.getFood(), 15);
     assert.strictEqual(pool.getGold(), 10);
-    assert.strictEqual(pool.getStone(), 15);
+    assert.strictEqual(pool.getMaterials(), 15);
   });
 
   test('hasEnough() should return true only if all resources meet requirements', () => {
