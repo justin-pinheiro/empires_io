@@ -20,22 +20,31 @@ export class GameState {
    * Processes production for all buildings based on elapsed time.
    */
   public update(dt: number): void {
-    this.processEconomy(dt);
+    this.processProduction(dt);
     this.processAutoRepair(dt);
   }
 
-  private processEconomy(dt: number): void {
-    const allBuildings = this.map.getAllBuildings();
-    
-    for (const building of allBuildings) {
-      if (!building || building.isDestroyed()) continue;
+  private processProduction(dt: number): void {
+    this.players.forEach(player => {
+      const production = player.getCivilisation().getProduction(dt);
+      player.getCivilisation().addToResources(production);
+    })
+  }
 
-      const owner = this.getPlayer(building.getOwnerId());
-      if (owner) {
-        const yieldGenerated = building.calculateYield(dt, owner.getCivilisation().getResearch().getMultiplier(ScienceBonusType.PRODUCTION));
-        owner.getCivilisation().addToResources(yieldGenerated);
+  private setProduction(playerId: string) {
+    this.getPlayer(playerId)?.getCivilisation().resetProduction();
+    const buildings = this.map.getAllBuildings();
+    buildings.forEach(building => {
+      if (building && !building.isDestroyed() && building.getOwnerId() === playerId) 
+      {
+        const owner = this.getPlayer(building.getOwnerId());
+        if (owner) {
+          const multiplier = owner.getCivilisation().getResearch().getMultiplier(ScienceBonusType.PRODUCTION)
+          const production = building.calculateProduction(multiplier);
+          owner.getCivilisation().updateProduction(production, 1);
+        }
       }
-    }
+    })
   }
 
   private processAutoRepair(dt: number): void {
@@ -74,6 +83,7 @@ export class GameState {
     civ.updateResourcesCapacity(building.stats.resourcesCapacityUpgrade, 1);
     this.map.setBuilding(tileId, building);
     this.map.setTileOwner(tileId, playerId);
+    this.setProduction(playerId);
     
     this.map.getTile(tileId)?.getNeighbors().forEach(neighbor => {
       if (neighbor && this.map.getTile(neighbor)?.getOwnerId() === null) 
@@ -90,6 +100,7 @@ export class GameState {
     const player = this.getPlayer(building.getOwnerId());
     if (player) {
       player.getCivilisation().updateResourcesCapacity(building.stats.resourcesCapacityUpgrade, 1);
+      this.setProduction(player?.getId())
     }
 
     this.map.removeBuilding(tileId);

@@ -149,9 +149,6 @@ export class GameEngine extends EventEmitter {
 
   public setPlayerCapital(playerId: string, tileId: string): void {
     if (!tileId) throw new Error('Capital tile ID is required.');
-    
-    // Bypass command handler for initial setup if necessary, 
-    // or use a command for consistency.
     this.state.addBuilding(playerId, BuildingType.CAPITAL, tileId);
     this.emit('buildingsUpdate');
   }

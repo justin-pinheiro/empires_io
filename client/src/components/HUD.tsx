@@ -14,7 +14,7 @@ export const GameHUD: React.FC<HUDProps> = ({ civilisation, production, nextAge 
         { 
             label: 'Workers', 
             value: `${Math.floor(civilisation.resources.workers)}/${Math.floor(civilisation.resourcesCapacity.workers)}`, 
-            production: null,
+            production: production.workers,
             icon: '🛠️', 
             color: '#a162e9' 
         },

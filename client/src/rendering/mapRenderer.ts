@@ -1,4 +1,4 @@
-// utils/MapRenderer.ts
+// rendering/MapRenderer.ts
 import { BuildingType } from '../types/buildingType';
 import { BUILDING_ICONS } from '../utils/assetLoader';
 import { getHexPixelPos, drawHexagon, HEX_SIZE, hexToRgba } from '../utils/hexMath';

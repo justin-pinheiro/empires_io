@@ -25,7 +25,7 @@ describe('Building Class', () => {
 
   test('calculateYield should scale correctly with time delta', () => {
     // Production: 1 Food * 0.4 Rate * 10 seconds = 4 Food
-    const yieldRes = farm.calculateYield(10, 1);
+    const yieldRes = farm.calculateProduction(10);
     expect(yieldRes.getFood()).toBe(4);
     expect(yieldRes.getGold()).toBe(0);
   });

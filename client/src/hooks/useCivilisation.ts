@@ -3,26 +3,7 @@ import { socket } from '../socket';
 import type { Civilisation } from '../types/civilisation';
 
 export const useCivilisation = () => {
-  const [civilisation, setCivilisation] = useState<Civilisation>({
-    name: "",
-    age: 1,
-    resources: {
-      food: 0, 
-      gold: 0, 
-      stone: 0, 
-      science: 0, 
-      army: 0
-    },
-    resourcesCapacity: {
-      food: 0, 
-      gold: 0, 
-      stone: 0, 
-      science: 0, 
-      army: 0
-    },
-    populationCapacity: 0,
-    workingPopulation: 0,
-  });
+  const [civilisation, setCivilisation] = useState<Civilisation>();
 
   useEffect(() => {
     socket.on('civilisationUpdate', (data: Civilisation) => {

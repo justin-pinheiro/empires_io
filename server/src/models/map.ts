@@ -96,7 +96,12 @@ export class GameMap {
             });
         })
         
-        return possibleTiles[Math.floor(Math.random()*possibleTiles.length)];;
+        const randomTileId = possibleTiles[Math.floor(Math.random()*possibleTiles.length)];
+
+        if (randomTileId)
+            return this.getTile(randomTileId);
+        else 
+            return null;
     }
 
     /**

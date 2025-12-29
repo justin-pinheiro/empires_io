@@ -6,3 +6,12 @@ export interface Resources {
   soldiers: number;
   workers: number;
 }
+
+export const RESOURCE_ICONS: Record<keyof Resources, string> = {
+  food: '🌾',
+  gold: '💰',
+  materials: '🪵',
+  science: '🧪',
+  soldiers: '⚔️',
+  workers: '🛠️',
+};

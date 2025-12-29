@@ -21,11 +21,6 @@ export class PlaceBuildingCommand implements ICommand {
         return "Insufficient resources to build " + stats.name;
     }
 
-    const availableWorkers = player.getCivilisation().getResourcesCapacity().getWorkers() - player.getCivilisation().getResources().getWorkers();
-    if (stats.resourcesToBuild.getWorkers() > availableWorkers) {
-        return "Insufficient available workers to build " + stats.name;
-    }
-
     const map = this.gameState.getMap()
     const tile = map.getTile(this.tileId)
 

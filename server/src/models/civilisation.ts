@@ -9,11 +9,13 @@ export class Civilisation {
     private age: number = 1;
     private research: Research;
     private resources: Resources;
+    private production: Resources;
     private resourcesCapacity: Resources;
 
     constructor(private readonly name: string) {
         this.resources = Resources.zero();
         this.resourcesCapacity = Resources.zero();
+        this.production = Resources.zero();
         this.research = new Research();
     }
 
@@ -37,6 +39,21 @@ export class Civilisation {
     public getResourcesCapacity(): Resources {
         const r = this.resourcesCapacity;
         return new Resources(r.getFood(), r.getGold(), r.getMaterials(), r.getScience(), r.getSoldiers(), r.getWorkers());
+    }
+
+    /**
+     * Returns a copy of the production to prevent external direct mutation.
+     */
+    public getProduction(multiplier: number): Resources {
+        const r = this.production;
+        return new Resources(
+            r.getFood()*multiplier, 
+            r.getGold()*multiplier, 
+            r.getMaterials()*multiplier, 
+            r.getScience()*multiplier, 
+            r.getSoldiers()*multiplier, 
+            r.getWorkers()*multiplier
+        );
     }
 
     public addToResources(incoming: Resources) {
@@ -72,6 +89,10 @@ export class Civilisation {
     }
 
     public updateResourcesCapacity(update: Resources, multiplier: number): void {
+        this.addToResources( new Resources (
+            0,0,0,0,0,update.getWorkers() * multiplier
+        ))
+
         this.resourcesCapacity.add( new Resources (
             Math.max(0, update.getFood() * multiplier),
             Math.max(0, update.getGold() * multiplier),
@@ -82,12 +103,28 @@ export class Civilisation {
         ));
     }
 
+    public resetProduction() {
+        this.production = Resources.zero();
+    }
+
+    public updateProduction(update: Resources, multiplier: number): void {
+        this.production.add( new Resources (
+            update.getFood() * multiplier,
+            update.getGold() * multiplier,
+            update.getMaterials() * multiplier,
+            update.getScience() * multiplier,
+            update.getSoldiers() * multiplier,
+            update.getWorkers() * multiplier,
+        ));
+    }
+
     public serialize() {
         return {
             name: this.name,
             age: this.age,
             resources: this.resources.serialize(),
             resourcesCapacity: this.resourcesCapacity.serialize(),
+            production: this.production.serialize(),
         }
     };
 }

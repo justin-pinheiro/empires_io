@@ -1,19 +1,12 @@
 import { useEffect, useRef } from 'react';
 import { socket } from '../socket';
-
-interface SerializedPlayer {
-  id: string;
-  name: string;
-  color: string;
-  isNPC: boolean;
-  civilisationName: string;
-}
+import type { Player } from '../types/player';
 
 export const usePlayersSocket = () => {
-  const playersRef = useRef<Map<string, SerializedPlayer>>(new Map());
+  const playersRef = useRef<Map<string, Player>>(new Map());
 
   useEffect(() => {
-    socket.on('playersUpdate', (data: Record<string, SerializedPlayer>) => {
+    socket.on('playersUpdate', (data: Record<string, Player>) => {
       playersRef.current = new Map(Object.entries(data));
     });
 

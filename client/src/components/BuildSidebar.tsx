@@ -3,6 +3,7 @@ import { useGameConstants } from '../hooks/useGameConstants';
 import type { BuildingStats } from '../types/buildingStats';
 import { BaseSidebar } from './BaseSidebar';
 import type { Resources } from '../types/resources';
+import { ResourceStats } from './ResourcesStatsComponent';
 
 interface BuildSidebarProps {
     selectedTile: any;
@@ -57,7 +58,7 @@ export const BuildSidebar: React.FC<BuildSidebarProps> = ({
 
                             <p style={styles.description}>{stats.description}</p>
 
-                            <div style={styles.costGrid}>
+                            {/* <div style={styles.costGrid}>
                                 {Object.entries(stats.resourcesToBuild).map(([res, amount]) => {
                                     if (amount === 0) return null;
                                     
@@ -79,7 +80,27 @@ export const BuildSidebar: React.FC<BuildSidebarProps> = ({
                                         </span>
                                     );
                                 })}
-                            </div>
+                            </div> */}
+
+                            <ResourceStats
+                                title="Construction cost (once)"
+                                resources={stats.resourcesToBuild}
+                            />
+
+                            <ResourceStats
+                                title="Maintenance cost (every turn)"
+                                resources={stats.resourcesToMaintain}
+                            />
+
+                            <ResourceStats
+                                title="Storage upgrade"
+                                resources={stats.resourcesCapacityUpgrade}
+                            />
+
+                            <ResourceStats
+                                title="Production upgrade"
+                                resources={stats.production}
+                            />
 
                             <button
                                 disabled={!affordable}

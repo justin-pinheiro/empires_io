@@ -49,13 +49,13 @@ export class Building {
   }
 
   /**
-   * Calculates resources produced over a specific time delta (dt).
+   * Calculates resources produced over one turn.
    * Subtract buildings maintenance cost.
    * Note: This returns a new Resources object representing the "income".
    */
-  public calculateYield(dt: number, production_multiplier: number): Resources {
+  public calculateProduction(production_multiplier: number): Resources {
     const rate = this.stats.productionRate;
-    const multiplier = rate * dt * production_multiplier;
+    const multiplier = rate * production_multiplier;
 
     return new Resources(
       (this.stats.production.getFood() * multiplier) - this.stats.resourcesToMaintain.getFood(),

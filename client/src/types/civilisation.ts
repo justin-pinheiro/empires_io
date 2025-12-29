@@ -5,4 +5,5 @@ export interface Civilisation {
   age: number;
   resources: Resources;
   resourcesCapacity: Resources;
+  production: Resources;
 }

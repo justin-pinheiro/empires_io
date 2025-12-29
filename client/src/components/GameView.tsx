@@ -1,11 +1,10 @@
 import React, { useEffect, useRef, useState } from "react";
 import { useCivilisation } from "../hooks/useCivilisation";
 import { useGameConstants } from "../hooks/useGameConstants";
-import { usePlayerProduction } from "../hooks/usePlayerProduction";
 import { useTiles } from "../hooks/useTiles";
 import { useBuildings } from "../hooks/useBuildings";
 import { usePlayersSocket } from "../hooks/usePlayersSockets";
-import { useMapCamera } from "../hooks/useMapCamera";
+import { useCamera } from "../hooks/useMapCamera";
 import { socket } from "../socket";
 import { loadAssets } from "../utils/assetLoader";
 import { MapRenderer } from "../rendering/mapRenderer";
@@ -14,6 +13,7 @@ import { GameSidebars } from "./GameSidebar";
 import { pixelToHex } from "../utils/hexMath";
 import { LoadingScreen } from "./LoadingScreen";
 import { ResearchBottomBar } from "./ResearchBottomBar";
+import { useMapEvents } from "../hooks/useMapEvents";
 
 export const GameView: React.FC = () => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -22,11 +22,10 @@ export const GameView: React.FC = () => {
   const { tilesRef } = useTiles();
   const { buildingsRef } = useBuildings();
   const { playersRef } = usePlayersSocket();
-  const { cameraRef, mouseState, onMouseMove, onWheel } = useMapCamera();
+  const { cameraRef, mouseState, onMouseMove, onWheel, centerOnTile } = useCamera();
   
   const civilisation = useCivilisation();
   const constants = useGameConstants();
-  const production = usePlayerProduction(socket.id);
   
   const [assetsLoaded, setAssetsLoaded] = useState(false);
   const [selectedTileId, setSelectedTileId] = useState<string | null>(null);
@@ -35,6 +34,8 @@ export const GameView: React.FC = () => {
   useEffect(() => {
     loadAssets().then(() => setAssetsLoaded(true));
   }, []);
+
+  useMapEvents(centerOnTile);
 
   // 3. Main Render Loop
   useEffect(() => {
@@ -101,7 +102,7 @@ export const GameView: React.FC = () => {
     <div style={containerStyle}>
       <GameHUD 
         civilisation={civilisation} 
-        production={production} 
+        production={civilisation.production} 
         nextAge={constants.agesData[civilisation.age + 1]}
       />
 
