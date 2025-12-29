@@ -13,6 +13,7 @@ import { GameHUD } from "./HUD";
 import { GameSidebars } from "./GameSidebar";
 import { pixelToHex } from "../utils/hexMath";
 import { LoadingScreen } from "./LoadingScreen";
+import { ResearchBottomBar } from "./ResearchBottomBar";
 
 export const GameView: React.FC = () => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -103,6 +104,8 @@ export const GameView: React.FC = () => {
         production={production} 
         nextAge={constants.agesData[civilisation.age + 1]}
       />
+
+      <ResearchBottomBar/>
       
       <canvas
         ref={canvasRef}

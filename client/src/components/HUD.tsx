@@ -52,12 +52,19 @@ export const GameHUD: React.FC<HUDProps> = ({ civilisation, production, nextAge 
     
     const scienceItems = [
         { 
+            label: 'Age', 
+            value: civilisation.age,
+            production: null, 
+            icon: '', 
+            color: '#6cde63' 
+        },
+        { 
             label: 'Science', 
             value: `${Math.floor(civilisation.resources.science)}/${Math.floor(nextAge.requiredScience)}`,
             production: production.science, 
             icon: '🧪', 
             color: '#6cde63' 
-        }
+        },
     ];
 
     const renderItem = (item: any) => (

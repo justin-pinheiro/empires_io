@@ -33,6 +33,13 @@ export class GameEngine extends EventEmitter {
 
   private update(dt: number): void {    
     this.state.update(dt);
+    const agedUpPlayerIds = this.state.processScience();
+    agedUpPlayerIds.forEach(playerId => {
+        const player = this.state.getPlayer(playerId);
+        if (player) {
+            this.emit('ageIncrease', playerId, player.getCivilisation().getAge());
+        }
+    });
     this.barbarianManager.update(dt);
     this.emit('resourcesUpdate');
     this.emit('buildingsUpdate');

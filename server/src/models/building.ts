@@ -52,13 +52,13 @@ export class Building {
    * Calculates resources produced over a specific time delta (dt).
    * Note: This returns a new Resources object representing the "income".
    */
-  public calculateYield(dt: number): Resources {
+  public calculateYield(dt: number, bonus_multiplier: number): Resources {
     const rate = this.stats.productionRate;
     
     // If rate is 0 or it's a static one-time production, return raw stats or zero
     if (rate === 0) return Resources.zero();
 
-    const multiplier = rate * dt;
+    const multiplier = rate * dt * bonus_multiplier;
     const base = this.stats.production;
 
     return new Resources(

@@ -1,3 +1,5 @@
+import { AGES_DATA, AgeType, getNextAge } from "./age.js";
+import { Research } from "./research.js";
 import { Resources } from "./resources.js";
 
 /**
@@ -5,6 +7,7 @@ import { Resources } from "./resources.js";
  */
 export class Civilisation {
     private age: number = 1;
+    private research: Research;
     private resources: Resources;
     private resourcesCapacity: Resources;
     private populationCapacity: number = 0;
@@ -13,11 +16,14 @@ export class Civilisation {
     constructor(private readonly name: string) {
         this.resources = Resources.zero();
         this.resourcesCapacity = Resources.zero();
+        this.research = new Research();
     }
 
     // --- Getters ---
 
     public getName(): string { return this.name; }
+    public getAge(): number { return this.age; }
+    public getResearch(): Research { return this.research; }
     public getPopulationCapacity(): number { return this.populationCapacity; }
     public getWorkingPopulation(): number { return this.workingPopulation; }
 
@@ -47,6 +53,21 @@ export class Civilisation {
         );
 
         this.resources.add(finalAddition);
+    }
+
+    public hasProgressedToNextAge() {
+        const currentScience = this.getResources().getScience();
+        const nextAge = getNextAge(this.age);
+        if (nextAge) {
+            const nextAgeData = AGES_DATA[nextAge];
+            if (currentScience >= nextAgeData.requiredScience) {
+                this.subtractFromResources(new Resources(0,0,0,nextAgeData.requiredScience,0));
+                this.age++;
+                this.research.addUpgradePoint();
+                return true;
+            }
+        }
+        return false
     }
 
     public subtractFromResources(resources: Resources) {

@@ -2,8 +2,9 @@ import { Player } from "../models/player.js";
 import { GameMap } from "../models/map.js";
 import { Building } from "../models/building.js";
 import { Civilisation } from "../models/civilisation.js";
-import { BUILDING_STATS, BuildingType } from "../models/buildingData.js";
+import { BuildingType } from "../models/buildingData.js";
 import { Resources } from "../models/resources.js";
+import { ScienceBonusType } from "../models/scienceBonus.js";
 
 export class GameState {
   private players: Map<string, Player> = new Map();
@@ -31,7 +32,7 @@ export class GameState {
 
       const owner = this.getPlayer(building.getOwnerId());
       if (owner) {
-        const yieldGenerated = building.calculateYield(dt);
+        const yieldGenerated = building.calculateYield(dt, owner.getCivilisation().getResearch().getMultiplier(ScienceBonusType.PRODUCTION));
         owner.getCivilisation().addToResources(yieldGenerated);
       }
     }
@@ -43,6 +44,18 @@ export class GameState {
       this.map.getBuilding(id)?.repair(repairAmount);
     });
   }
+
+  public processScience(): string[] {
+    const leveledUpIds: string[] = [];
+    this.players.forEach((player, id) => {
+        const hasLeveled = player.getCivilisation().hasProgressedToNextAge();
+        if (hasLeveled) {
+            leveledUpIds.push(id);
+        }
+    });
+    
+    return leveledUpIds;
+}
 
   // --- Building Management ---
 

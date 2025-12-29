@@ -61,6 +61,37 @@ export const setupSocketHandlers = (io: Server, game: GameEngine) => {
             broadcastBuildingsUpdates(io, game);
             broadcastCivilisationUpdates(io, game);
         });
+
+        socket.on('request_research_options', () => {
+            const player = game.getPlayer(socket.id);
+            if (!player) return;
+            const research = player.getCivilisation().getResearch();
+            
+            if (research.getPendingUpgrades() > 0) {
+                socket.emit('research_options', {
+                    options: research.getAvailableOptions(),
+                    pendingCount: research.getPendingUpgrades()
+                });
+            }
+        });
+
+        socket.on('select_research', ({ bonusType }) => {
+            const player = game.getPlayer(socket.id);
+            if (!player) return;
+
+            const research = player.getCivilisation().getResearch();
+            const success = research.applyUpgrade(bonusType);
+
+            if (success) {
+                Logger.info(`Player ${socket.id} researched ${bonusType}`);
+                broadcastCivilisationUpdates(io, game);
+                if (research.getPendingUpgrades() > 0) {
+                    socket.emit('research_point_remaining', research.getPendingUpgrades());
+                } else {
+                    socket.emit('research_complete');
+                }
+            }
+        });
     });
 
     game.on('resourcesUpdate', () => {
@@ -69,6 +100,12 @@ export const setupSocketHandlers = (io: Server, game: GameEngine) => {
 
     game.on('buildingsUpdate', () => {
         broadcastBuildingsUpdates(io, game);
+    });
+
+    game.on('ageIncrease', (socketId: string, age: number) => {
+        io.to(socketId).emit('ageIncrease', age);
+        io.to(socketId).emit('available_upgrade_alert'); 
+        broadcastCivilisationUpdates(io, game);
     });
 };
 

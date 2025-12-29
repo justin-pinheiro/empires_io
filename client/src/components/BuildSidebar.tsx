@@ -41,7 +41,6 @@ export const BuildSidebar: React.FC<BuildSidebarProps> = ({
             <div style={styles.scrollArea}>
                 {Object.entries(constants.buildingStats as Record<string, BuildingStats>).map(([key, stats]) => {
                     
-                    console.log(stats)
                     if (!stats.buildable) return null;
 
                     const isCorrectTerrain = stats.buildableTerrains.includes(selectedTile.terrain.name);

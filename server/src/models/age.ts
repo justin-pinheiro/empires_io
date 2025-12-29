@@ -19,7 +19,7 @@ export interface AgeStats {
 export const AGES_DATA: Readonly<Record<AgeType, AgeStats>> = Object.freeze({
     [AgeType.AGE_1]: {
         ageNumber: 1,
-        requiredScience: 0,
+        requiredScience: 50,
     },
     [AgeType.AGE_2]: {
         ageNumber: 2,
@@ -66,4 +66,17 @@ export function getSerializedAgesData() {
         ])
     );
     return buildableStatsReadable;
+}
+
+/**
+ * Returns the next AgeType based on the current age number.
+ * Returns null if the player is already at max age.
+ */
+export function getNextAge(currentAgeNumber: number): AgeType | null {
+    const nextAgeNumber = currentAgeNumber + 1;
+    if (nextAgeNumber in AgeType) {
+        return nextAgeNumber as AgeType;
+    }
+
+    return null;
 }

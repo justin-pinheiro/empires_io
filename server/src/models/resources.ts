@@ -7,7 +7,8 @@ export class Resources {
     private gold: number = 0,
     private stone: number = 0,
     private science: number = 0,
-    private army: number = 0
+    private soldiers: number = 0,
+    private workers: number = 0
   ) {}
     
  /**

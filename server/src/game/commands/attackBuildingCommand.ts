@@ -1,6 +1,7 @@
 import { Building } from "../../models/building.js";
 import { BuildingType } from "../../models/buildingData.js";
 import { Resources } from "../../models/resources.js";
+import { ScienceBonusType } from "../../models/scienceBonus.js";
 import type { ICommand } from "../../utils/ICommand.js";
 import type { GameState } from "../gameState.js";
 
@@ -48,11 +49,11 @@ export class AttackBuildingCommand implements ICommand {
 	}
 
 	execute(): void {
-		this.gameState.getPlayer(this.attackerId)?.getCivilisation().subtractFromResources(
-			new Resources(0,0,0,0,this.troopCount)
-		)
+		const attackerCivilisation = this.gameState.getPlayer(this.attackerId)?.getCivilisation()!
+		attackerCivilisation.subtractFromResources(new Resources(0,0,0,0,this.troopCount))
+
 		const building = this.gameState.getMap().getBuilding(this.tileId)
-		building?.takeDamage(this.troopCount);
+		building?.takeDamage(this.troopCount * attackerCivilisation.getResearch().getMultiplier(ScienceBonusType.ARMY));
 		if (building?.isDestroyed()) {
 			this.gameState.removeBuilding(this.tileId);
 			this.gameState.getMap().setBuilding(this.tileId, new Building(BuildingType.OUTPOST, this.attackerId));
