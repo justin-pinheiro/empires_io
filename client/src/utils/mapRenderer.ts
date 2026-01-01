@@ -1,7 +1,7 @@
 // rendering/MapRenderer.ts
 import { BuildingType } from '../types/buildingType';
-import { BUILDING_ICONS } from '../utils/assetLoader';
-import { getHexPixelPos, drawHexagon, HEX_SIZE, hexToRgba } from '../utils/hexMath';
+import { BUILDING_ICONS } from './assetLoader';
+import { getHexPixelPos, drawHexagon, HEX_SIZE, hexToRgba } from './hexMath';
 
 export interface RenderState {
   tiles: any[];
@@ -93,7 +93,7 @@ export class MapRenderer {
 
       const originalIcon = BUILDING_ICONS[building.type.toUpperCase()];
       let iconSize = size * 1;
-      if (building.type === BuildingType.WATCH_TOWER)
+      if (building.type === BuildingType.OUTPOST)
         iconSize = size * 0.5;
 
       if (originalIcon && originalIcon.complete) {
@@ -105,7 +105,7 @@ export class MapRenderer {
           const tintedIcon = this.getTintedIcon(originalIcon, color);
 
           let iconSize = size * 1;
-          if (building.type === BuildingType.WATCH_TOWER) iconSize = size * 0.5;
+          if (building.type === BuildingType.OUTPOST) iconSize = size * 0.5;
 
           ctx.drawImage(tintedIcon, x - iconSize / 2, y - iconSize / 2, iconSize, iconSize);
         } else {

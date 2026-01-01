@@ -40,24 +40,10 @@ export const GameHUD: React.FC<HUDProps> = ({ civilisation, production, nextAge 
             production: production.gold, 
             icon: '💰', 
             color: '#ffd700' 
-        },
-        { 
-            label: 'Materials', 
-            value: `${Math.floor(civilisation.resources.materials)}/${Math.floor(civilisation.resourcesCapacity.materials)}`,
-            production: production.materials, 
-            icon: '🪵', 
-            color: '#aaaaaa' 
         }
     ];
     
     const scienceItems = [
-        { 
-            label: 'Age', 
-            value: civilisation.age,
-            production: null, 
-            icon: '', 
-            color: '#6cde63' 
-        },
         { 
             label: 'Science', 
             value: `${Math.floor(civilisation.resources.science)}/${Math.floor(nextAge.requiredScience)}`,
@@ -65,6 +51,14 @@ export const GameHUD: React.FC<HUDProps> = ({ civilisation, production, nextAge 
             icon: '🧪', 
             color: '#6cde63' 
         },
+        { 
+            label: 'Age', 
+            value: civilisation.age,
+            production: null, 
+            icon: '', 
+            color: '#6cde63' 
+        },
+        
     ];
 
     const renderItem = (item: any) => (
@@ -76,7 +70,7 @@ export const GameHUD: React.FC<HUDProps> = ({ civilisation, production, nextAge 
                     <span style={{ ...valueStyle, color: item.color }}>{item.value}</span>
                     {item.production != null && (
                         <span style={{ ...productionStyle, color: item.color }}>
-                            {item.production >= 0 ? '+' : ''}{item.production.toFixed(1)}
+                            {item.production >= 0 ? '+' : ''}{item.production.toFixed(0)}
                         </span>
                     )}
                 </div>
@@ -112,9 +106,10 @@ const containerStyle: React.CSSProperties = {
     left: '50%',
     transform: 'translateX(-50%)',
     display: 'flex',
-    gap: '30px', // Gap between the two panels
+    flexDirection: 'row',
+    gap: '30px', 
     zIndex: 200,
-    pointerEvents: 'none', // Allows clicking through to the map if needed
+    pointerEvents: 'none',
 };
 
 const panelStyle: React.CSSProperties = {
@@ -132,11 +127,11 @@ const panelStyle: React.CSSProperties = {
 const itemStyle: React.CSSProperties = {
     display: 'flex',
     alignItems: 'center',
-    gap: '12px',
+    gap: '16px',
 };
 
 const iconStyle: React.CSSProperties = {
-    fontSize: '1.4rem',
+    fontSize: '30px',
     filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.5))',
 };
 
@@ -147,7 +142,7 @@ const textWrapperStyle: React.CSSProperties = {
 };
 
 const labelStyle: React.CSSProperties = {
-    fontSize: '10px',
+    fontSize: '16px',
     textTransform: 'uppercase',
     color: 'rgba(255, 255, 255, 0.5)',
     fontWeight: 800,
@@ -162,7 +157,7 @@ const valueContainerStyle: React.CSSProperties = {
 };
 
 const valueStyle: React.CSSProperties = {
-    fontSize: '16px',
+    fontSize: '20px',
     fontWeight: 'bold',
     fontFamily: '"JetBrains Mono", monospace',
     textShadow: '0 2px 4px rgba(0,0,0,0.3)',

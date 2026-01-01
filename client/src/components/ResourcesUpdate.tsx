@@ -1,25 +1,33 @@
 import { RESOURCE_ICONS, type Resources } from "../types/resources";
 
 
-interface ResourceStatsProps {
+interface ResourceUpdateProps {
   title: string;
-  resources: Resources;
+  update: Resources;
 }
 
-export const ResourceStats: React.FC<ResourceStatsProps> = ({ title, resources: resources }) => {
+export const ResourcesUpdate: React.FC<ResourceUpdateProps> = ({ title, update }) => {
   return (
     <div style={styles.container}>
       <h4 style={styles.miniTitle}>{title}</h4>
     
-      <div style={styles.miniGrid}>
-        {(Object.entries(resources) as [keyof Resources, number][]).map(([res, val]) => {
-          if (val === 0) return null;
 
+      <div style={styles.miniGrid}>
+        {(Object.entries(update) as [keyof Resources, number][]).map(([res, val]) => {
+          if (val === 0) return null;
+          
+          const isPositiveUpdate = val > 0
+          
           return (
             <span key={res} style={styles.resItem}>
               <span style={styles.icon}>{RESOURCE_ICONS[res]}</span>
-              <span style={styles.value}>
-                {val > 0 ? '+' : ''}{val.toFixed(1)}
+              <span 
+                style={{ 
+                  ...styles.value, 
+                  color: isPositiveUpdate ? '#ffffffff' : '#ff4d4d'
+                }}
+              >
+                {isPositiveUpdate ? '+' : ''}{val.toFixed(0)}
               </span>
             </span>
           );
@@ -52,13 +60,13 @@ const styles = {
   resItem: {
     display: 'flex',
     alignItems: 'center',
-    fontSize: '0.85rem', // Shrunk text
+    fontSize: '0.85rem',
     gap: '3px',
   },
   icon: {
     fontSize: '0.9rem',
   },
   value: {
-    fontWeight: 500,
+    fontWeight: 'bold'
   }
 };

@@ -7,13 +7,16 @@ import { usePlayersSocket } from "../hooks/usePlayersSockets";
 import { useCamera } from "../hooks/useMapCamera";
 import { socket } from "../socket";
 import { loadAssets } from "../utils/assetLoader";
-import { MapRenderer } from "../rendering/mapRenderer";
+import { MapRenderer } from "../utils/mapRenderer";
 import { GameHUD } from "./HUD";
 import { GameSidebars } from "./GameSidebar";
 import { pixelToHex } from "../utils/hexMath";
 import { LoadingScreen } from "./LoadingScreen";
 import { ResearchBottomBar } from "./ResearchBottomBar";
 import { useMapEvents } from "../hooks/useMapEvents";
+import { BuildRadialMenu } from "./BuildRadialMenu";
+import { BuildingType } from "../types/buildingType";
+import { AttackRadialMenu } from "./AttackRadialMenu";
 
 export const GameView: React.FC = () => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -91,12 +94,19 @@ export const GameView: React.FC = () => {
     setSelectedTileId(null);
   };
 
+  const handleAttack = (troopCount: number) => {
+      if (!selectedTileId) return;
+      socket.emit('attack', { tileKey: selectedTileId, troopCount: troopCount });
+    };
+
   // 5. Early Return (Must be AFTER hooks)
   if (!constants || !civilisation || !assetsLoaded) {
     return <LoadingScreen />;
   }
 
-  const selectedTileObj = tilesRef.current.find(t => t.id === selectedTileId) ?? null;
+  const selectedTile = tilesRef.current.find(t => t.id === selectedTileId) ?? null;
+  const playerId = String(socket.id);
+  const selectedBuilding = selectedTile ? buildingsRef.current.get(selectedTile.id) : null;
 
   return (
     <div style={containerStyle}>
@@ -119,14 +129,26 @@ export const GameView: React.FC = () => {
         onClick={(e) => handleMapClick(e, cameraRef, tilesRef, setSelectedTileId)}
       />
 
-      <GameSidebars 
-        playerId={String(socket.id)}
-        selectedTile={selectedTileObj}
-        buildings={buildingsRef.current}
-        civilisation={civilisation}
-        onBuild={handleBuild} 
-        onClose={() => setSelectedTileId(null)}
-      />
+      {selectedTile && selectedBuilding && (selectedBuilding.ownerId === playerId) && (selectedBuilding.type === BuildingType.OUTPOST) && (
+        <BuildRadialMenu 
+          selectedTile={selectedTile} 
+          camera={cameraRef.current}
+          civilisation={civilisation}
+          buildingStats={constants.buildingStats}
+          onBuild={handleBuild}
+        />
+      )}
+
+      {selectedTile && selectedBuilding && (selectedBuilding.ownerId !== playerId) && (
+        <AttackRadialMenu 
+          selectedTile={selectedTile}
+          enemyBuilding={selectedBuilding}
+          camera={cameraRef.current}
+          civilisation={civilisation}
+          onAttack={handleAttack}
+        />
+      )}
+
     </div>
   );
 };

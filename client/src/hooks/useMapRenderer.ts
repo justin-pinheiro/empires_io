@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import { MapRenderer } from "../rendering/mapRenderer";
+import { MapRenderer } from "../utils/mapRenderer";
 
 export const useMapRenderer = (
   canvasRef: React.RefObject<HTMLCanvasElement | null>,
