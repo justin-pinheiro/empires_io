@@ -9,7 +9,7 @@ describe('GameState integration', () => {
 
   beforeEach(() => {
     state = new GameState(2);
-    state.addPlayer(P1, 'Alice');
+    state.addPlayer(P1, 'Alice', "#ffffff");
     const alice = state.getPlayer(P1)!;
     alice.getCivilisation().addToResources(new Resources(100, 100, 100, 100, 100));
   });

@@ -14,7 +14,7 @@ export class PlaceBuildingCommand implements ICommand {
     const player = this.gameState.getPlayer(this.playerId);
     if (!player) return "Player " + this.playerId + " does not exist.";
 
-    const stats = BUILDING_STATS[this.buildingType];
+    const stats = BUILDING_STATS[this.buildingType][1];
     if (!stats) return "Invalid building type : " + this.tileId + ".";
 
     if (!player.getCivilisation().getResources().hasEnough(stats.resourcesToBuild)) {

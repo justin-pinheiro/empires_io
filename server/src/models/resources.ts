@@ -5,7 +5,6 @@ export class Resources {
   constructor(
     private food: number = 0,
     private gold: number = 0,
-    private materials: number = 0,
     private science: number = 0,
     private soldiers: number = 0,
     private workers: number = 0
@@ -15,14 +14,13 @@ export class Resources {
    * Static factory to create a "zeroed" resource object.
    */
   static zero(): Resources {
-    return new Resources(0, 0, 0, 0, 0, 0);
+    return new Resources(0, 0, 0, 0, 0);
   }
 
   // --- Getters ---
 
   public getFood() { return this.food; }
   public getGold() { return this.gold; }
-  public getMaterials() { return this.materials; }
   public getScience() { return this.science; }
   public getSoldiers() { return this.soldiers; }
   public getWorkers() { return this.workers; }
@@ -35,7 +33,6 @@ export class Resources {
   public add(incoming: Resources): void {
     this.food += incoming.food;
     this.gold += incoming.gold;
-    this.materials += incoming.materials;
     this.science += incoming.science;
     this.soldiers += incoming.soldiers;
     this.workers += incoming.workers;
@@ -48,7 +45,6 @@ export class Resources {
   public subtract(incoming: Resources): void {
     this.food -= incoming.food;
     this.gold -= incoming.gold;
-    this.materials -= incoming.materials;
     this.science -= incoming.science;
     this.soldiers -= incoming.soldiers;
     this.workers -= incoming.workers;
@@ -61,7 +57,6 @@ export class Resources {
     return (
       this.food >= cost.food &&
       this.gold >= cost.gold &&
-      this.materials >= cost.materials &&
       this.science >= cost.science &&
       this.soldiers >= cost.soldiers &&
       this.workers >= cost.workers
@@ -75,7 +70,6 @@ export class Resources {
     return {
       food: Math.floor(this.food),
       gold: Math.floor(this.gold),
-      materials: Math.floor(this.materials),
       science: Math.floor(this.science),
       soldiers: Math.floor(this.soldiers),
       workers: Math.floor(this.workers),

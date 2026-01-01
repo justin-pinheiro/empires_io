@@ -1,5 +1,4 @@
 // rendering/MapRenderer.ts
-import { BuildingType } from '../types/buildingType';
 import { BUILDING_ICONS } from './assetLoader';
 import { getHexPixelPos, drawHexagon, HEX_SIZE, hexToRgba } from './hexMath';
 
@@ -92,9 +91,6 @@ export class MapRenderer {
       if (this.isOffscreen(x, y, size, ctx.canvas)) return;
 
       const originalIcon = BUILDING_ICONS[building.type.toUpperCase()];
-      let iconSize = size * 1;
-      if (building.type === BuildingType.OUTPOST)
-        iconSize = size * 0.5;
 
       if (originalIcon && originalIcon.complete) {
           // Find the owner's color (default to white if not found)
@@ -104,8 +100,7 @@ export class MapRenderer {
           // Get the tinted version
           const tintedIcon = this.getTintedIcon(originalIcon, color);
 
-          let iconSize = size * 1;
-          if (building.type === BuildingType.OUTPOST) iconSize = size * 0.5;
+          const iconSize = size * 2;
 
           ctx.drawImage(tintedIcon, x - iconSize / 2, y - iconSize / 2, iconSize, iconSize);
         } else {
@@ -155,9 +150,6 @@ export class MapRenderer {
 
       // Call Function 1: The Overlay
       this.drawTerritoryOverlay(ctx, x, y, size, player.color);
-
-      // Call Function 2: The Borders
-      this.drawInternalBorders(ctx, tile, tileMap, x, y, size, player.color, camera.zoom);
     }
   }
 

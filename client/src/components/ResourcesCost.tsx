@@ -1,5 +1,5 @@
-import { RESOURCE_ICONS, type Resources } from "../types/resources";
-
+import React from 'react';
+import { RESOURCE_COLORS, type Resources } from "../types/resources";
 
 interface ResourceCostProps {
   title: string;
@@ -17,14 +17,33 @@ export const ResourcesCost: React.FC<ResourceCostProps> = ({ title, cost, resour
           if (val === 0) return null;
 
           const canAfford = resources[res] >= val;
+          const resColor = RESOURCE_COLORS[res] || '#fff';
+
+          // Colorized Image Icon logic
+          const iconStyle: React.CSSProperties = {
+            width: '16px',
+            height: '16px',
+            backgroundColor: resColor,
+            WebkitMaskImage: `url(/resources/${res}.png)`,
+            maskImage: `url(/resources/${res}.png)`,
+            WebkitMaskRepeat: 'no-repeat',
+            maskRepeat: 'no-repeat',
+            WebkitMaskSize: 'contain',
+            maskSize: 'contain',
+            flexShrink: 0,
+          };
 
           return (
             <span key={res} style={styles.resItem}>
-              <span style={styles.icon}>{RESOURCE_ICONS[res]}</span>
+              {/* 1. Colorized Icon */}
+              <div style={iconStyle} />
+              
+              {/* 2. Affordability Value */}
               <span 
                 style={{ 
                   ...styles.value, 
-                  color: canAfford ? '#fff' : '#ff4d4d'
+                  color: canAfford ? '#fff' : '#ff4d4d',
+                  textDecoration: canAfford ? 'none' : '#ff4d4d',
                 }}
               >
                 {val.toFixed(0)}
@@ -37,36 +56,37 @@ export const ResourcesCost: React.FC<ResourceCostProps> = ({ title, cost, resour
   );
 };
 
+// --- Styles ---
+
 const styles = {
   container: {
     display: 'flex',
     flexDirection: 'column' as const,
-    gap: '2px', // Tighten gap between title and resources
-    margin: '4px 0',
+    gap: '4px',
   },
   miniTitle: {
     margin: 0,
-    fontSize: '0.75rem', // Reduced size
-    fontWeight: 'bold',
-    color: '#666',
-    textAlign: 'left' as const,
+    fontSize: '10px',
+    textTransform: 'uppercase' as const,
+    color: 'rgba(255, 255, 255, 0.4)',
+    letterSpacing: '0.05em',
+    fontWeight: 700,
   },
   miniGrid: {
     display: 'flex',
     flexWrap: 'wrap' as const,
-    gap: '8px',
-    padding: '2px 0',
+    gap: '12px',
+    alignItems: 'center',
   },
   resItem: {
     display: 'flex',
     alignItems: 'center',
-    fontSize: '0.85rem', // Shrunk text
-    gap: '3px',
-  },
-  icon: {
-    fontSize: '0.9rem',
+    gap: '6px',
   },
   value: {
-    fontWeight: 500,
-  }
+    fontSize: '14px',
+    fontWeight: 'bold' as const,
+    fontFamily: '"JetBrains Mono", monospace',
+    fontVariantNumeric: 'tabular-nums',
+  },
 };

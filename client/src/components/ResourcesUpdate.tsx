@@ -1,9 +1,9 @@
-import { RESOURCE_ICONS, type Resources } from "../types/resources";
-
+import React from 'react';
+import { RESOURCE_COLORS, type Resources } from "../types/resources";
 
 interface ResourceUpdateProps {
   title: string;
-  update: Resources;
+  update: Partial<Resources>; // Partial because not all buildings update all resources
 }
 
 export const ResourcesUpdate: React.FC<ResourceUpdateProps> = ({ title, update }) => {
@@ -11,20 +11,35 @@ export const ResourcesUpdate: React.FC<ResourceUpdateProps> = ({ title, update }
     <div style={styles.container}>
       <h4 style={styles.miniTitle}>{title}</h4>
     
-
       <div style={styles.miniGrid}>
         {(Object.entries(update) as [keyof Resources, number][]).map(([res, val]) => {
-          if (val === 0) return null;
+          if (val === 0 || val === undefined) return null;
           
-          const isPositiveUpdate = val > 0
-          
+          const isPositiveUpdate = val > 0;
+          const resColor = RESOURCE_COLORS[res] || '#fff';
+
+          // Colorized Image Icon logic
+          const iconStyle: React.CSSProperties = {
+            width: '16px',
+            height: '16px',
+            backgroundColor: resColor,
+            WebkitMaskImage: `url(/resources/${res}.png)`,
+            maskImage: `url(/resources/${res}.png)`,
+            WebkitMaskRepeat: 'no-repeat',
+            maskRepeat: 'no-repeat',
+            WebkitMaskSize: 'contain',
+            maskSize: 'contain',
+            flexShrink: 0,
+          };
+
           return (
             <span key={res} style={styles.resItem}>
-              <span style={styles.icon}>{RESOURCE_ICONS[res]}</span>
+              {/* Colorized Icon to reinforce the resource type */}
+              <div style={iconStyle} />
+              
               <span 
                 style={{ 
-                  ...styles.value, 
-                  color: isPositiveUpdate ? '#ffffffff' : '#ff4d4d'
+                  ...styles.value,
                 }}
               >
                 {isPositiveUpdate ? '+' : ''}{val.toFixed(0)}
@@ -37,36 +52,38 @@ export const ResourcesUpdate: React.FC<ResourceUpdateProps> = ({ title, update }
   );
 };
 
+// --- Styles ---
+
 const styles = {
   container: {
     display: 'flex',
     flexDirection: 'column' as const,
-    gap: '2px', // Tighten gap between title and resources
-    margin: '4px 0',
+    gap: '4px',
   },
   miniTitle: {
     margin: 0,
-    fontSize: '0.75rem', // Reduced size
-    fontWeight: 'bold',
-    color: '#666',
-    textAlign: 'left' as const,
+    fontSize: '10px',
+    textTransform: 'uppercase' as const,
+    color: 'rgba(255, 255, 255, 0.4)', // Dimmer title to keep focus on numbers
+    letterSpacing: '0.1em',
+    fontWeight: 800,
   },
   miniGrid: {
     display: 'flex',
     flexWrap: 'wrap' as const,
-    gap: '8px',
-    padding: '2px 0',
+    gap: '12px',
+    alignItems: 'center',
   },
   resItem: {
     display: 'flex',
     alignItems: 'center',
-    fontSize: '0.85rem',
-    gap: '3px',
-  },
-  icon: {
-    fontSize: '0.9rem',
+    gap: '6px',
   },
   value: {
-    fontWeight: 'bold'
-  }
+    fontSize: '14px',
+    fontWeight: 'bold' as const,
+    fontFamily: '"JetBrains Mono", monospace',
+    fontVariantNumeric: 'tabular-nums',
+    textShadow: '0 1px 2px rgba(0,0,0,0.5)',
+  },
 };

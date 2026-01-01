@@ -6,7 +6,6 @@ export interface BuildingStats {
     baseHealth: number;
     buildableTerrains: string[];
     resourcesToBuild: Resources;
-    resourcesToMaintain: Resources;
 	resourcesCapacityUpgrade: Resources;
     production: Resources;
     productionRate: number;

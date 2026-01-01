@@ -55,9 +55,7 @@ export class AttackBuildingCommand implements ICommand {
 		const building = this.gameState.getMap().getBuilding(this.tileId)
 		building?.takeDamage(this.troopCount * attackerCivilisation.getResearch().getMultiplier(ScienceBonusType.ARMY));
 		if (building?.isDestroyed()) {
-			this.gameState.removeBuilding(this.tileId);
-			this.gameState.getMap().setBuilding(this.tileId, new Building(BuildingType.OUTPOST, this.attackerId));
-			this.gameState.getMap().setTileOwner(this.tileId, this.attackerId);
+			this.gameState.playerDestroyedBuilding(this.tileId, this.attackerId);
 		}
 	}
 }

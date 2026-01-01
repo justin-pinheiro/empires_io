@@ -6,7 +6,7 @@ import type { TerrainDefinition } from "../types/terrain";
 import type { AgeStats } from "../types/age";
 
 export interface GameConstants {
-    buildingStats: Record<string, BuildingStats>;
+    buildingStats: Record<string, Record<number,BuildingStats>>;
     terrainData: Record<string, TerrainDefinition>;
     agesData: Record<number, AgeStats>;
 }

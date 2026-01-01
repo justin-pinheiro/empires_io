@@ -5,7 +5,7 @@ import type { GameEngine } from '../game/gameEngine.js';
 import { getSerializedBuildingsData } from '../models/buildingData.js';
 import { TERRAIN_DATA } from '../models/terrainTypeEnum.js';
 import { getSerializedAgesData } from '../models/age.js';
-import { Tile } from '../models/tile.js';
+import { Resources } from '../models/resources.js';
 
 const socketsIds : string[] = [];
 
@@ -64,6 +64,20 @@ export const setupSocketHandlers = (io: Server, game: GameEngine) => {
             broadcastCivilisationUpdates(io, game);
         });
 
+        socket.on('upgrade', ( { tileKey } ) => {
+            game.upgradeBuilding(socket.id, tileKey);
+            broadcastTilesUpdates(io, game);
+            broadcastBuildingsUpdates(io, game);
+            broadcastCivilisationUpdates(io, game);
+        });
+
+        socket.on('delete', ( { tileKey } ) => {
+            game.deleteBuilding(socket.id, tileKey);
+            broadcastTilesUpdates(io, game);
+            broadcastBuildingsUpdates(io, game);
+            broadcastCivilisationUpdates(io, game);
+        });
+
         socket.on('request_research_options', () => {
             const player = game.getPlayer(socket.id);
             if (!player) return;
@@ -102,6 +116,7 @@ export const setupSocketHandlers = (io: Server, game: GameEngine) => {
 
     game.on('buildingsUpdate', () => {
         broadcastBuildingsUpdates(io, game);
+        broadcastTilesUpdates(io, game);
     });
 
     game.on('ageIncrease', (socketId: string, age: number) => {

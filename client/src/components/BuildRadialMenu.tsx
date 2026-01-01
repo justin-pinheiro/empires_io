@@ -5,22 +5,24 @@ import { ResourcesCost } from './ResourcesCost';
 import type { BuildingStats } from '../types/buildingStats';
 import type { Tile } from '../types/tile';
 import { ResourcesUpdate } from './ResourcesUpdate';
-import { RESOURCE_ICONS } from '../types/resources';
+import { RESOURCE_COLORS } from '../types/resources';
 
 const RADIAL_CATEGORIES = [
-  { label: 'Food', icon: RESOURCE_ICONS.food, color: '#4CAF50', options: ['FARM', 'FISHING_ZONE'] },
-  { label: 'Gold', icon: RESOURCE_ICONS.gold, color: '#FFD700', options: ['MARKET', 'MINE'] },
-  { label: 'Workers', icon: RESOURCE_ICONS.workers, color: '#2196F3', options: ['HOUSE'] },
-  { label: 'Soldiers', icon: RESOURCE_ICONS.soldiers, color: '#F44336', options: ['BARRACKS'] },
-  { label: 'Science', icon: RESOURCE_ICONS.science, color: '#9C27B0', options: ['LIBRARY'] },
-  { label: 'Defense', icon: '🛡️', color: '#795548', options: ['FORTIFICATIONS'] },
+  { label: 'Food', iconKey: 'food', color: RESOURCE_COLORS.food, options: ['FARM', 'FISHING_ZONE'] },
+  { label: 'Gold', iconKey: 'gold', color: RESOURCE_COLORS.gold, options: ['MARKET', 'MINE'] },
+  { label: 'Workers', iconKey: 'workers', color: RESOURCE_COLORS.workers, options: ['HOUSE'] },
+  { label: 'Soldiers', iconKey: 'soldiers', color: RESOURCE_COLORS.soldiers, options: ['BARRACKS'] },
+  { label: 'Science', iconKey: 'science', color: RESOURCE_COLORS.science, options: ['LIBRARY'] },
+  { label: 'Defense', iconKey: 'defense', color: '#90A4AE', options: ['FORTIFICATIONS'] },
 ];
+
+const FIRST_LEVEL = 1;
 
 interface RadialMenuProps {
   selectedTile: Tile;
   camera: { x: number; y: number; zoom: number };
   civilisation: any;
-  buildingStats: Record<string, BuildingStats>;
+  buildingStats: Record<string, Record<number, BuildingStats>>;
   onBuild: (type: string) => void;
 }
 
@@ -45,14 +47,14 @@ export const BuildRadialMenu: React.FC<RadialMenuProps> = ({
 
   const getActiveBuildingInSlot = (options: string[]) => {
     const validOption = options.find(key => {
-      const stats = buildingStats[key];
+      const stats = buildingStats[key][FIRST_LEVEL];
       return stats && isTerrainValid(stats);
     });
     return validOption || options[0];
   };
 
   const hoveredStats = hoveredKey ? buildingStats[hoveredKey] : null;
-  const isHoveredValid = hoveredStats ? isTerrainValid(hoveredStats) : false;
+  const isHoveredValid = hoveredStats ? isTerrainValid(hoveredStats[FIRST_LEVEL]) : false;
 
   return (
     <div style={{ ...styles.menuContainer, left: x, top: y }}>
@@ -64,13 +66,8 @@ export const BuildRadialMenu: React.FC<RadialMenuProps> = ({
       }}>
         {hoveredKey && BUILDING_ICONS[hoveredKey] ? (
           <div style={styles.ghostContainer}>
-            <img 
-              src={BUILDING_ICONS[hoveredKey].src} 
-              style={styles.ghostImage} 
-              alt="ghost"
-            />
             <div style={styles.ghostLabel}>
-              {buildingStats[hoveredKey]?.name.toUpperCase()}
+              {isHoveredValid ? buildingStats[hoveredKey][FIRST_LEVEL]?.name.toUpperCase() : ""}
             </div>
           </div>
         ) : (
@@ -82,7 +79,7 @@ export const BuildRadialMenu: React.FC<RadialMenuProps> = ({
       <svg width="100%" height="100%" viewBox="0 0 100 100">
         {RADIAL_CATEGORIES.map((category, i) => {
           const activeKey = getActiveBuildingInSlot(category.options);
-          const stats = buildingStats[activeKey];
+          const stats = buildingStats[activeKey][FIRST_LEVEL];
           if (!stats) return null;
 
           const terrainValid = isTerrainValid(stats);
@@ -111,21 +108,21 @@ export const BuildRadialMenu: React.FC<RadialMenuProps> = ({
               />
 
               <foreignObject 
-                x={50 + 32 * Math.cos((rotation + 30) * Math.PI / 180 - Math.PI / 2)} 
-                y={50 + 32 * Math.sin((rotation + 30) * Math.PI / 180 - Math.PI / 2)} 
-                width="30" height="30"
+                x={55 + 30 * Math.cos((rotation + 30) * Math.PI / 180 - Math.PI / 2)} 
+                y={55 + 30 * Math.sin((rotation + 30) * Math.PI / 180 - Math.PI / 2)} 
+                width="20" height="20"
                 style={styles.foreignObjectCenter}
               >
                 <div style={styles.sliceContent}>
-                  <span style={{ 
-                    ...styles.categoryIcon, 
-                    filter: terrainValid ? 'none' : 'grayscale(1) opacity(0.2)' 
-                  }}>
-                    {category.icon}
-                  </span>
-                  {!terrainValid && (
-                    <span style={styles.invalidText}>INVALID</span>
-                  )}
+                  <div style={{
+                    width: '12px',
+                    height: '12px',
+                    backgroundColor: terrainValid ? '#FFFFFF' : 'rgba(255,255,255,0.2)', // White icon on colored slice
+                    maskImage: `url(/resources/${category.iconKey}.png)`,
+                    WebkitMaskImage: `url(/resources/${category.iconKey}.png)`,
+                    maskSize: 'contain',
+                    maskRepeat: 'no-repeat',
+                  }} />
                 </div>
               </foreignObject>
             </g>
@@ -138,7 +135,7 @@ export const BuildRadialMenu: React.FC<RadialMenuProps> = ({
         <div style={styles.costBarContainer}>
           <ResourcesCost 
             title={`Cost`}
-            cost={hoveredStats.resourcesToBuild}
+            cost={hoveredStats[FIRST_LEVEL].resourcesToBuild}
             resources={civilisation.resources}
           />
         </div>
@@ -148,19 +145,19 @@ export const BuildRadialMenu: React.FC<RadialMenuProps> = ({
 
       {hoveredStats && isHoveredValid && (
         <div style={styles.bottomProductionContainer}>
-          {hoveredStats.production && (
+          {hoveredStats[FIRST_LEVEL].production && (
             <div style={styles.productionBarContainer}>
               <ResourcesUpdate 
                   title={"Production"}
-                  update={hoveredStats.production}
+                  update={hoveredStats[FIRST_LEVEL].production}
               />
             </div>
           )}
-          {hoveredStats.resourcesCapacityUpgrade && (
+          {hoveredStats[FIRST_LEVEL].resourcesCapacityUpgrade && (
           <div style={styles.productionBarContainer}>
               <ResourcesUpdate 
                   title={"Storage"}
-                  update={hoveredStats.resourcesCapacityUpgrade}
+                  update={hoveredStats[FIRST_LEVEL].resourcesCapacityUpgrade}
               />
           </div>
       )}
@@ -192,13 +189,15 @@ const styles = {
     width: '85px',
     height: '85px',
     borderRadius: '50%',
-    border: '4px solid rgba(255,255,255,0.3)',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
     boxShadow: '0 0 30px rgba(0,0,0,0.6)',
     zIndex: 10,
     overflow: 'hidden' as const,
+    backgroundColor: 'rgba(15, 15, 15, 0.8)',
+    backdropFilter: 'blur(10px)',
+    border: '2px solid rgba(255,255,255,0.1)',
   },
   ghostContainer: {
     textAlign: 'center' as const,
@@ -221,7 +220,7 @@ const styles = {
     fontSize: '10px',
     fontWeight: 'bold' as const,
   },
-  invalidSliceColor: '#1a1a1a',
+  invalidSliceColor: 'rgba(255, 255, 255, 0.05)',
   sliceTransition: {
     transition: 'all 0.15s ease-in-out',
   },
@@ -238,12 +237,14 @@ const styles = {
     textShadow: '1px 1px 3px black',
   },
   categoryIcon: {
-    fontSize: '10px',
+    width: '100px',
+    height: '100px',
   },
   invalidText: {
-    color: '#ff4444',
-    fontSize: '3px',
-    fontWeight: 'bold' as const,
+    color: '#ff4d4d',
+    fontSize: '5px',
+    fontWeight: 800,
+    marginTop: '2px',
   },
   costBarContainer: {
     position: 'absolute' as const,

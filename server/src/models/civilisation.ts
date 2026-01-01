@@ -30,7 +30,7 @@ export class Civilisation {
      */
     public getResources(): Resources {
         const r = this.resources;
-        return new Resources(r.getFood(), r.getGold(), r.getMaterials(), r.getScience(), r.getSoldiers(), r.getWorkers());
+        return new Resources(r.getFood(), r.getGold(), r.getScience(), r.getSoldiers(), r.getWorkers());
     }
 
     /**
@@ -38,7 +38,7 @@ export class Civilisation {
      */
     public getResourcesCapacity(): Resources {
         const r = this.resourcesCapacity;
-        return new Resources(r.getFood(), r.getGold(), r.getMaterials(), r.getScience(), r.getSoldiers(), r.getWorkers());
+        return new Resources(r.getFood(), r.getGold(), r.getScience(), r.getSoldiers(), r.getWorkers());
     }
 
     /**
@@ -49,7 +49,6 @@ export class Civilisation {
         return new Resources(
             r.getFood()*multiplier, 
             r.getGold()*multiplier, 
-            r.getMaterials()*multiplier, 
             r.getScience()*multiplier, 
             r.getSoldiers()*multiplier, 
             r.getWorkers()*multiplier
@@ -60,7 +59,6 @@ export class Civilisation {
         const finalAddition = new Resources(
             Math.min(incoming.getFood(), Math.max(0, this.resourcesCapacity.getFood() - this.resources.getFood())),
             Math.min(incoming.getGold(), Math.max(0, this.resourcesCapacity.getGold() - this.resources.getGold())),
-            Math.min(incoming.getMaterials(), Math.max(0, this.resourcesCapacity.getMaterials() - this.resources.getMaterials())),
             Math.min(incoming.getScience(), Math.max(0, this.resourcesCapacity.getScience() - this.resources.getScience())),
             Math.min(incoming.getSoldiers(), Math.max(0, this.resourcesCapacity.getSoldiers() - this.resources.getSoldiers())),
             Math.min(incoming.getWorkers(), Math.max(0, this.resourcesCapacity.getWorkers() - this.resources.getWorkers())),
@@ -90,13 +88,12 @@ export class Civilisation {
 
     public updateResourcesCapacity(update: Resources, multiplier: number): void {
         this.addToResources( new Resources (
-            0,0,0,0,0,update.getWorkers() * multiplier
+            0,0,0,0,update.getWorkers() * multiplier
         ))
 
         this.resourcesCapacity.add( new Resources (
             Math.max(0, update.getFood() * multiplier),
             Math.max(0, update.getGold() * multiplier),
-            Math.max(0, update.getMaterials() * multiplier),
             Math.max(0, update.getScience() * multiplier),
             Math.max(0, update.getSoldiers() * multiplier),
             Math.max(0, update.getWorkers() * multiplier),
@@ -111,7 +108,6 @@ export class Civilisation {
         this.production.add( new Resources (
             update.getFood() * multiplier,
             update.getGold() * multiplier,
-            update.getMaterials() * multiplier,
             update.getScience() * multiplier,
             update.getSoldiers() * multiplier,
             update.getWorkers() * multiplier,

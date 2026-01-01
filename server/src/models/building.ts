@@ -1,4 +1,4 @@
-import { BUILDING_STATS, BuildingType } from "./buildingData.js";
+import { BUILDING_STATS, BuildingType, hasNextLevel, type BuildingStats } from "./buildingData.js";
 import { Resources } from "./resources.js";
 
 /**
@@ -7,26 +7,44 @@ import { Resources } from "./resources.js";
  */
 export class Building {
   private currentHealth: number;
+  private maxHealth: number;
+  private level: number;
 
   constructor(
     public readonly type: BuildingType,
     private readonly ownerId: string
   ) {
+    this.level = 1;
     this.currentHealth = this.stats.baseHealth;
+    this.maxHealth = this.stats.baseHealth;
   }
 
   /**
    * Getter for static stats. 
    * Provides easy access to the 'blueprint' data for this instance.
    */
-  public get stats() {
-    return BUILDING_STATS[this.type];
-  }
-
-  // --- Health Management ---
+  public get stats(): BuildingStats {
+    const levelStats = BUILDING_STATS[this.type][this.level];
+    
+    if (!levelStats) {
+        throw new Error(
+            `Configuration Missing: No stats found for ${this.type} at level ${this.level}`
+        );
+    }
+    
+    return levelStats;
+}
 
   public getHealth() {
-    return { current: this.currentHealth, max: this.stats.baseHealth };
+    return { current: this.currentHealth, max: this.maxHealth };
+  }
+
+  public addToMaxHealth(amount: number) {
+    this.maxHealth += amount;
+  }
+
+  public subtractToMaxHealth(amount: number) {
+    this.maxHealth -= amount;
   }
 
   public isDestroyed(): boolean {
@@ -38,14 +56,22 @@ export class Building {
   }
 
   public repair(amount: number): void {
-    if (this.isDestroyed()) return; // Cannot repair a pile of rubble
-    this.currentHealth = Math.min(this.currentHealth + amount, this.stats.baseHealth);
+    if (this.isDestroyed()) return;
+    this.currentHealth = Math.min(this.currentHealth + amount, this.maxHealth);
   }
-
-  // --- Logic & Production ---
 
   public getOwnerId(): string {
     return this.ownerId;
+  }
+
+  public getLevel(): number {
+    return this.level;
+  }
+
+  public upgrade(): void {
+    if (hasNextLevel(this.type, this.level)) {
+      this.level += 1;
+    }
   }
 
   /**
@@ -58,12 +84,11 @@ export class Building {
     const multiplier = rate * production_multiplier;
 
     return new Resources(
-      (this.stats.production.getFood() * multiplier) - this.stats.resourcesToMaintain.getFood(),
-      (this.stats.production.getGold() * multiplier) - this.stats.resourcesToMaintain.getGold(),
-      (this.stats.production.getMaterials() * multiplier) - this.stats.resourcesToMaintain.getMaterials(),
-      (this.stats.production.getScience() * multiplier) - this.stats.resourcesToMaintain.getScience(),
-      (this.stats.production.getSoldiers() * multiplier) - this.stats.resourcesToMaintain.getSoldiers(),
-      (this.stats.production.getWorkers() * multiplier) - this.stats.resourcesToMaintain.getWorkers(),
+      this.stats.production.getFood() * multiplier,
+      this.stats.production.getGold() * multiplier,
+      this.stats.production.getScience() * multiplier,
+      this.stats.production.getSoldiers() * multiplier,
+      this.stats.production.getWorkers() * multiplier,
     );
   }
 
@@ -73,10 +98,10 @@ export class Building {
     return {
       ownerId: this.ownerId,
       type: this.type,
+      level: this.level,
       name: this.stats.name,
       description: this.stats.description,
       health: this.getHealth(),
-      resourcesToMaintain: this.stats.resourcesToMaintain,
       production: this.stats.production.serialize(),
       productionRate: this.stats.productionRate,
       isDestroyed: this.isDestroyed()

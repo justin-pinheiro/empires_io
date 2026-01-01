@@ -9,19 +9,19 @@ import { ScienceBonusType } from "../models/scienceBonus.js";
 export class GameState {
   private players: Map<string, Player> = new Map();
   private map: GameMap;
-
+  
   constructor(mapSize: number) {
     this.map = new GameMap(mapSize);
   }
-
+  
   // --- Core Game Loop Methods ---
-
+  
   /**
    * Processes production for all buildings based on elapsed time.
-   */
-  public update(dt: number): void {
-    this.processProduction(dt);
-    this.processAutoRepair(dt);
+  */
+ public update(dt: number): void {
+   this.processProduction(dt);
+   this.processAutoRepair(dt);
   }
 
   private processProduction(dt: number): void {
@@ -30,69 +30,122 @@ export class GameState {
       player.getCivilisation().addToResources(production);
     })
   }
-
+  
   private setProduction(playerId: string) {
     this.getPlayer(playerId)?.getCivilisation().resetProduction();
     const buildings = this.map.getAllBuildings();
     buildings.forEach(building => {
       if (building && !building.isDestroyed() && building.getOwnerId() === playerId) 
-      {
-        const owner = this.getPlayer(building.getOwnerId());
-        if (owner) {
-          const multiplier = owner.getCivilisation().getResearch().getMultiplier(ScienceBonusType.PRODUCTION)
-          const production = building.calculateProduction(multiplier);
-          owner.getCivilisation().updateProduction(production, 1);
+        {
+          const owner = this.getPlayer(building.getOwnerId());
+          if (owner) {
+            const multiplier = owner.getCivilisation().getResearch().getMultiplier(ScienceBonusType.PRODUCTION)
+            const production = building.calculateProduction(multiplier);
+            owner.getCivilisation().updateProduction(production, 1);
+          }
         }
-      }
-    })
+      })
   }
-
+  
   private processAutoRepair(dt: number): void {
     const repairAmount = 1 * dt;
-    this.map.getAllTileIds().forEach(id => {
-      this.map.getBuilding(id)?.repair(repairAmount);
+    this.map.getAllBuildings().forEach(building => {
+      const playerMultiplier = this.getPlayer(building.getOwnerId())?.getCivilisation().getResearch().getMultiplier(ScienceBonusType.BUILDING_HP);
+      building.repair(repairAmount * playerMultiplier!);
     });
   }
-
+  
   public processScience(): string[] {
     const leveledUpIds: string[] = [];
     this.players.forEach((player, id) => {
-        const hasLeveled = player.getCivilisation().hasProgressedToNextAge();
+      const hasLeveled = player.getCivilisation().hasProgressedToNextAge();
         if (hasLeveled) {
-            leveledUpIds.push(id);
+          leveledUpIds.push(id);
         }
-    });
-    
-    return leveledUpIds;
-}
-
-  // --- Building Management ---
-
-  public addBuilding(playerId: string, type: BuildingType, tileId: string): void {
-    const player = this.getPlayer(playerId);
-    if (!player) throw new Error(`Player ${playerId} not found`);
-
-    const building = new Building(type, playerId);
-    const civ = player.getCivilisation();
-
-    if (!civ.getResources().hasEnough(building.stats.resourcesToBuild)) {
-      throw new Error("Insufficient resources to build");
+      });
+      
+      return leveledUpIds;
     }
-
-    civ.subtractFromResources(building.stats.resourcesToBuild);
-    civ.updateResourcesCapacity(building.stats.resourcesCapacityUpgrade, 1);
-    this.map.setBuilding(tileId, building);
-    this.map.setTileOwner(tileId, playerId);
-    this.setProduction(playerId);
     
-    this.map.getTile(tileId)?.getNeighbors().forEach(neighbor => {
-      if (neighbor && this.map.getTile(neighbor)?.getOwnerId() === null) 
-        this.map.getTile(neighbor)?.setOwnerId(playerId);
+    // --- Building Management ---
+    
+    public addBuilding(playerId: string, type: BuildingType, tileId: string): void {
+      const player = this.getPlayer(playerId);
+      if (!player) throw new Error(`Player ${playerId} not found`);
+      
+      const building = new Building(type, playerId);
+      const civ = player.getCivilisation();
+      
+      if (!civ.getResources().hasEnough(building.stats.resourcesToBuild)) {
+          throw new Error("Insufficient resources to build");
+      }
+      
+      civ.subtractFromResources(building.stats.resourcesToBuild);
+      civ.updateResourcesCapacity(building.stats.resourcesCapacityUpgrade, 1);
+      
+      if (type === BuildingType.CAPITAL) {
+        civ.addToResources(new Resources(
+          civ.getResourcesCapacity().getFood(),
+          civ.getResourcesCapacity().getGold(),
+          0,
+          civ.getResourcesCapacity().getSoldiers(),
+          civ.getResourcesCapacity().getWorkers(),
+        ));
+      }
+
+      this.map.setBuilding(tileId, building);
+      this.map.setTileOwner(tileId, playerId);
+      this.setProduction(playerId);
+      
+      this.map.getTile(tileId)?.getNeighbors().forEach(neighbor => {
+        if (neighbor && this.map.getTile(neighbor)?.getOwnerId() === null) 
+          this.map.getTile(neighbor)?.setOwnerId(playerId);
         if (neighbor && !this.map.getBuilding(neighbor))
           this.map.setBuilding(neighbor, new Building(BuildingType.OUTPOST, playerId));
       })
-  }
 
+      // tower special ability
+      const tower_bonus = 50
+      if (building.type === BuildingType.FORTIFICATIONS) {
+        this.map.getTile(tileId)?.getNeighbors().forEach(neighbor => {
+          if (neighbor) {
+            this.map.getBuilding(neighbor)?.addToMaxHealth(tower_bonus);
+          }
+        })
+      }
+    }
+  
+  
+  public addBarbarianCamp(barbarianId: string, tileId: string): void {
+    const player = this.getPlayer(barbarianId);
+    if (!player) throw new Error(`Player ${barbarianId} not found`);
+    
+    const building = new Building(BuildingType.BARBARIAN_CAMP, barbarianId);
+    this.map.setBuilding(tileId, building);
+    this.map.removeTileOwner(tileId);
+    this.map.setTileOwner(tileId, barbarianId);
+  }
+  
+  playerDestroyedBuilding(tileId: string, attackerId: string) {
+    this.removeBuilding(tileId);
+    this.getMap().setTileOwner(tileId, attackerId);
+
+    const building = this.map.getBuilding(tileId);
+    const tower_bonus = 50
+      if (building && building.type === BuildingType.FORTIFICATIONS) {
+        this.map.getTile(tileId)?.getNeighbors().forEach(neighbor => {
+          if (neighbor) {
+            this.map.getBuilding(neighbor)?.addToMaxHealth(tower_bonus);
+          }
+        })
+      }
+
+    if (attackerId === "Barbarians")
+      this.getMap().setBuilding(tileId, new Building(BuildingType.BARBARIAN_CAMP, attackerId));
+    else
+      this.getMap().setBuilding(tileId, new Building(BuildingType.OUTPOST, attackerId));
+  }
+  
   public removeBuilding(tileId: string): void {
     const building = this.map.getBuilding(tileId);
     if (!building) return;
@@ -108,10 +161,9 @@ export class GameState {
 
   // --- Player Management ---
 
-  public addPlayer(playerId: string, name: string): void {
+  public addPlayer(playerId: string, name: string, hex_color: string): void {
     const civ = new Civilisation(`${name}'s Empire`);
-    const color = "#" + Math.floor(Math.random() * 16777215).toString(16).padStart(6, '0');
-    const player = new Player(playerId, name, civ, color, false);
+    const player = new Player(playerId, name, civ, hex_color, false);
     this.players.set(playerId, player);
   }
 

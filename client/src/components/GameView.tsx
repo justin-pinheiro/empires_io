@@ -9,7 +9,6 @@ import { socket } from "../socket";
 import { loadAssets } from "../utils/assetLoader";
 import { MapRenderer } from "../utils/mapRenderer";
 import { GameHUD } from "./HUD";
-import { GameSidebars } from "./GameSidebar";
 import { pixelToHex } from "../utils/hexMath";
 import { LoadingScreen } from "./LoadingScreen";
 import { ResearchBottomBar } from "./ResearchBottomBar";
@@ -17,6 +16,8 @@ import { useMapEvents } from "../hooks/useMapEvents";
 import { BuildRadialMenu } from "./BuildRadialMenu";
 import { BuildingType } from "../types/buildingType";
 import { AttackRadialMenu } from "./AttackRadialMenu";
+import { BuildingInfoRadial } from "./BuildingInfoRadialMenu";
+import type { BuildingStats } from "../types/buildingStats";
 
 export const GameView: React.FC = () => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -99,6 +100,21 @@ export const GameView: React.FC = () => {
       socket.emit('attack', { tileKey: selectedTileId, troopCount: troopCount });
     };
 
+  const handleUpgrade = () => {
+      if (!selectedTileId) return;
+      socket.emit('upgrade', { tileKey: selectedTileId });
+    };
+
+  const handleDelete = () => {
+      if (!selectedTileId) return;
+      socket.emit('delete', { tileKey: selectedTileId });
+    };
+
+  const getNextLevel = (type: BuildingType, currentLevel: number) => {
+    const nextLevel = currentLevel + 1;
+    return constants?.buildingStats[type][nextLevel]!;
+  }
+
   // 5. Early Return (Must be AFTER hooks)
   if (!constants || !civilisation || !assetsLoaded) {
     return <LoadingScreen />;
@@ -128,6 +144,18 @@ export const GameView: React.FC = () => {
         onWheel={onWheel}
         onClick={(e) => handleMapClick(e, cameraRef, tilesRef, setSelectedTileId)}
       />
+
+      {selectedTile && selectedBuilding && (selectedBuilding.ownerId === playerId) && (selectedBuilding.type != BuildingType.OUTPOST) && (
+        <BuildingInfoRadial 
+          selectedTile={selectedTile} 
+          selectedBuilding={selectedBuilding} 
+          camera={cameraRef.current}
+          nextLevelStats={getNextLevel(selectedBuilding.type, selectedBuilding.level)}
+          playerResources={civilisation.resources}
+          onUpgrade={handleUpgrade}
+          onDestroy={handleDelete}
+        />
+      )}
 
       {selectedTile && selectedBuilding && (selectedBuilding.ownerId === playerId) && (selectedBuilding.type === BuildingType.OUTPOST) && (
         <BuildRadialMenu 

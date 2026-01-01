@@ -135,7 +135,7 @@ export class GameMap {
         this.getTile(tileKey)!.setOwnerId(playerId);
     }
 
-    removeTileOwner(tileKey: string) {
+    public removeTileOwner(tileKey: string) {
         if (!this.tiles.has(tileKey)) throw new Error(`Tile ${tileKey} does not exist.`);
             this.getTile(tileKey)!.removeOwnerId();
     }

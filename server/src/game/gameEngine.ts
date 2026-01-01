@@ -1,5 +1,5 @@
 import { EventEmitter } from 'events';
-import { BUILDING_STATS, BuildingType } from "../models/buildingData.js";
+import { BuildingType } from "../models/buildingData.js";
 import { GameLoop } from "./gameLoop.js";
 import { GameState } from "./gameState.js";
 import { CommandHandler } from "./commands/commandHandler.js";
@@ -7,8 +7,10 @@ import { PlaceBuildingCommand } from "./commands/placeBuildingCommand.js";
 import { AttackBuildingCommand } from "./commands/attackBuildingCommand.js";
 import { BarbarianManager } from "./barbarianManager.js";
 import Logger from "../utils/logger.js";
-import type { Player } from '../models/player.js';
+import { Player } from '../models/player.js';
 import type { Tile } from '../models/tile.js';
+import { UpgradeBuildingCommand } from './commands/upgradeBuildingCommand.js';
+import { DeleteBuildingCommand } from './commands/deleteBuildingCommand.js';
 
 /**
  * The GameEngine coordinates the state, the loop, and external commands.
@@ -25,7 +27,7 @@ export class GameEngine extends EventEmitter {
     this.loop = new GameLoop((dt) => this.update(dt), 1);
     this.barbarianManager = new BarbarianManager(this.state, this);
   }
-
+  
   public start(): void {
     Logger.info("Game Engine Starting...");
     this.loop.start();
@@ -35,9 +37,9 @@ export class GameEngine extends EventEmitter {
     this.state.update(dt);
     const agedUpPlayerIds = this.state.processScience();
     agedUpPlayerIds.forEach(playerId => {
-        const player = this.state.getPlayer(playerId);
-        if (player) {
-            this.emit('ageIncrease', playerId, player.getCivilisation().getAge());
+      const player = this.state.getPlayer(playerId);
+      if (player) {
+        this.emit('ageIncrease', playerId, player.getCivilisation().getAge());
         }
     });
     this.barbarianManager.update(dt);
@@ -46,17 +48,29 @@ export class GameEngine extends EventEmitter {
   }
 
   // --- Command Interface ---
-
+  
   public placeBuilding(playerId: string, type: BuildingType, tileId: string): void {
     this.commandHandler.handleCommand(
       new PlaceBuildingCommand(this.state, playerId, type, tileId)
     );
     this.emit('buildingsUpdate');
   }
-
+  
   public attackBuilding(playerId: string, tileId: string, troopCount: number): void {
     this.commandHandler.handleCommand(
       new AttackBuildingCommand(this.state, playerId, tileId, troopCount)
+    );
+  }
+  
+  upgradeBuilding(playerId: string, tileId: any) {
+    this.commandHandler.handleCommand(
+      new UpgradeBuildingCommand(this.state, playerId, tileId)
+    );
+  }
+
+  deleteBuilding(playerId: string, tileId: any) {
+    this.commandHandler.handleCommand(
+      new DeleteBuildingCommand(this.state, playerId, tileId)
     );
   }
 
@@ -119,8 +133,13 @@ export class GameEngine extends EventEmitter {
 
   // --- Player Logic ---
 
-  public addPlayer(playerId: string, name: string): void {
-    this.state.addPlayer(playerId, name);
+  public addPlayer(playerId: string, name: string, hex_color: string | null = null): void {
+    if (!hex_color) {
+      const colors = Player.getColors();
+      const randomIndex = Math.floor(Math.random() * colors.length);
+      hex_color = colors[randomIndex]!;
+    }
+    this.state.addPlayer(playerId, name, hex_color);
     Logger.info(`Player added: ${name} (${playerId})`);
   }
 
