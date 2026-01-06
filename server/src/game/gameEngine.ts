@@ -11,6 +11,7 @@ import { Player } from '../models/player.js';
 import type { Tile } from '../models/tile.js';
 import { UpgradeBuildingCommand } from './commands/upgradeBuildingCommand.js';
 import { DeleteBuildingCommand } from './commands/deleteBuildingCommand.js';
+import { Resources } from '../models/resources.js';
 
 /**
  * The GameEngine coordinates the state, the loop, and external commands.
@@ -73,6 +74,18 @@ export class GameEngine extends EventEmitter {
       new DeleteBuildingCommand(this.state, playerId, tileId)
     );
   }
+
+  public setStartingResources(playerId: string) {
+    const civ = this.getPlayer(playerId)?.getCivilisation();
+    civ?.addToResources(new Resources (
+      civ.getResourcesCapacity().getFood(),
+      civ.getResourcesCapacity().getGold(),
+      0,
+      civ.getResourcesCapacity().getSoldiers(),
+      civ.getResourcesCapacity().getWorkers(),
+    ))
+  }
+  
 
   // --- Visibility & Fog of War ---
 

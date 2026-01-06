@@ -17,7 +17,7 @@ import { BuildRadialMenu } from "./BuildRadialMenu";
 import { BuildingType } from "../types/buildingType";
 import { AttackRadialMenu } from "./AttackRadialMenu";
 import { BuildingInfoRadial } from "./BuildingInfoRadialMenu";
-import type { BuildingStats } from "../types/buildingStats";
+import { useGameSounds } from "../hooks/useGameSound";
 
 export const GameView: React.FC = () => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -33,6 +33,7 @@ export const GameView: React.FC = () => {
   
   const [assetsLoaded, setAssetsLoaded] = useState(false);
   const [selectedTileId, setSelectedTileId] = useState<string | null>(null);
+  const { playSelect } = useGameSounds();
 
   // 2. Load Assets
   useEffect(() => {
@@ -89,6 +90,25 @@ export const GameView: React.FC = () => {
   }, [assetsLoaded, selectedTileId, tilesRef.current.length]);
 
   // 4. Handlers
+  const handleMapClick = (
+    e: React.MouseEvent,
+    cameraRef: React.MutableRefObject<{ x: number; y: number; zoom: number }>,
+    tilesRef: React.MutableRefObject<any[]>,
+    setSelectedTileId: (id: string | null) => void
+  ) => {
+    const rect = (e.target as HTMLCanvasElement).getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+
+    const { q, r } = pixelToHex(x, y, cameraRef.current.x, cameraRef.current.y, cameraRef.current.zoom);
+    const clickedTile = tilesRef.current.find(t => t.x === q && t.y === r);
+
+    if (clickedTile)
+      playSelect();
+
+    setSelectedTileId(clickedTile ? clickedTile.id : null);
+  };
+  
   const handleBuild = (buildingTypeId: string) => {
     if (!selectedTileId) return;
     socket.emit('build', { tileKey: selectedTileId, buildingTypeKey: buildingTypeId });
@@ -179,24 +199,6 @@ export const GameView: React.FC = () => {
 
     </div>
   );
-};
-
-// --- Styles & Helpers ---
-
-const handleMapClick = (
-  e: React.MouseEvent,
-  cameraRef: React.MutableRefObject<{ x: number; y: number; zoom: number }>,
-  tilesRef: React.MutableRefObject<any[]>,
-  setSelectedTileId: (id: string | null) => void
-) => {
-  const rect = (e.target as HTMLCanvasElement).getBoundingClientRect();
-  const x = e.clientX - rect.left;
-  const y = e.clientY - rect.top;
-
-  const { q, r } = pixelToHex(x, y, cameraRef.current.x, cameraRef.current.y, cameraRef.current.zoom);
-  const clickedTile = tilesRef.current.find(t => t.x === q && t.y === r);
-
-  setSelectedTileId(clickedTile ? clickedTile.id : null);
 };
 
 const containerStyle: React.CSSProperties = { 

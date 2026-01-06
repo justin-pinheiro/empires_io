@@ -34,12 +34,6 @@ export class UpgradeBuildingCommand implements ICommand {
 	}
 
 	execute(): void {
-		const building = this.gameState.getMap().getBuilding(this.tileId)!;
-		const nextLevelCost = getNextLevel(building!.type, building.getLevel()).resourcesToBuild;
-		
-		const playerCivilisation = this.gameState.getPlayer(this.playerId)?.getCivilisation()!;
-		playerCivilisation.subtractFromResources(nextLevelCost);
-		
-		building.upgrade();
+		this.gameState.upgradeBuilding(this.tileId);
 	}
 }

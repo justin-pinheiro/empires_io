@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import { getHexPixelPos } from '../utils/hexMath';
-import { BUILDING_ICONS } from '../utils/assetLoader';
 import { ResourcesCost } from './ResourcesCost';
 import { ATTACK_ACTIONS } from '../types/attackStats';
 import { RESOURCE_COLORS } from '../types/resources';
@@ -8,6 +7,7 @@ import type { Resources } from '../types/resources';
 import type { Tile } from '../types/tile';
 import type { Building } from '../types/building';
 import type { Civilisation } from '../types/civilisation';
+import { useGameSounds } from '../hooks/useGameSound';
 
 interface AttackRadialMenuProps {
     selectedTile: Tile;
@@ -25,6 +25,7 @@ export const AttackRadialMenu: React.FC<AttackRadialMenuProps> = ({
     onAttack
 }) => {
     const [hoveredActionKey, setHoveredActionKey] = useState<string | null>(null);
+    const { playHover, playAttack, playCancel } = useGameSounds();
 
     if (!selectedTile) return null;
 
@@ -47,14 +48,6 @@ export const AttackRadialMenu: React.FC<AttackRadialMenuProps> = ({
                     <span style={styles.hpText}>
                         {Math.floor(enemyBuilding?.health.current)} <span style={{opacity: 0.5}}>/</span> {Math.floor(enemyBuilding?.health.max)}
                     </span>
-                    
-                    {!hoveredActionKey && enemyBuilding && (
-                        <img 
-                            src={BUILDING_ICONS[enemyBuilding.type]?.src} 
-                            style={styles.buildingIcon} 
-                            alt="enemy" 
-                        />
-                    )}
                 </div>
             </div>
 
@@ -69,9 +62,20 @@ export const AttackRadialMenu: React.FC<AttackRadialMenuProps> = ({
                         <g 
                             key={key}
                             style={{ cursor: canAfford ? 'pointer' : 'not-allowed', pointerEvents: 'auto' }}
-                            onMouseEnter={() => setHoveredActionKey(key)}
+                            onMouseEnter={() => {
+                                playHover();
+                                setHoveredActionKey(key);
+                            }}
                             onMouseLeave={() => setHoveredActionKey(null)}
-                            onClick={() => canAfford && onAttack(action.soldiersCost)}
+                            onClick={() => {
+                                if (canAfford) {
+                                    playAttack();
+                                    onAttack(action.soldiersCost);
+                                }
+                                else {
+                                    playCancel();
+                                }
+                            }}
                         >
                             <path
                                 d="M 50 50 L 50 5 A 45 45 0 0 1 89 27.5 Z"
@@ -94,6 +98,7 @@ export const AttackRadialMenu: React.FC<AttackRadialMenuProps> = ({
                                     <div style={{
                                         width: '14px',
                                         height: '14px',
+                                        opacity: canAfford ? 0.9 : 0.2,
                                         backgroundColor: isHovered ? '#fff' : RESOURCE_COLORS.soldiers,
                                         WebkitMaskImage: 'url(/resources/soldiers.png)',
                                         maskImage: 'url(/resources/soldiers.png)',
@@ -103,6 +108,7 @@ export const AttackRadialMenu: React.FC<AttackRadialMenuProps> = ({
                                     }} />
                                     <span style={{
                                         ...styles.damageText,
+                                        opacity: canAfford ? 0.9 : 0.2,
                                         color: isHovered ? '#fff' : RESOURCE_COLORS.soldiers
                                     }}>
                                         -{action.soldiersCost}
@@ -205,8 +211,7 @@ const styles = {
         height: '100%',
     },
     damageText: {
-        fontSize: '9px',
-        fontWeight: 900,
+        fontSize: '4px',
         fontFamily: '"JetBrains Mono", monospace',
         marginTop: '2px',
     },

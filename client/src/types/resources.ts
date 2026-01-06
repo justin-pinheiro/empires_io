@@ -6,6 +6,16 @@ export interface Resources {
   workers: number;
 }
 
+export function hasEnough(cost: Resources, available: Resources) {
+  return (
+    available.food >= cost.food &&
+    available.gold >= cost.gold &&
+    available.science >= cost.science &&
+    available.soldiers >= cost.soldiers &&
+    available.workers >= cost.workers
+  )
+}
+
 export const RESOURCE_ICONS: Record<keyof Resources, string> = {
   food: '🌾',
   gold: '💰',

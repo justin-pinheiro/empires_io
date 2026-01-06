@@ -56,7 +56,7 @@ export const GameHUD: React.FC<HUDProps> = ({ civilisation, production, nextAge 
         { 
             label: 'Science', 
             current: civilisation.resources.science,
-            max: nextAge.requiredScience,
+            max: nextAge ? nextAge.requiredScience : null,
             production: production.science, 
             iconName: 'science.png', 
             color: RESOURCE_COLORS["science"], 

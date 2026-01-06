@@ -1,25 +1,21 @@
-import { BuildingType } from "../types/buildingType";
-
-const ALL_BUILDING_TYPES = Object.values(BuildingType);
 export const BUILDING_ICONS: Record<string, HTMLImageElement> = {};
 
-export const loadAssets = (): Promise<void[]> => {
-  const promises = ALL_BUILDING_TYPES.map((type) => {
-    return new Promise<void>((resolve, reject) => {
+export const loadAssets = async () => {
+  const modules = import.meta.glob('/public/buildings/*.png', { eager: true });
+  
+  const promises = Object.keys(modules).map((path) => {
+    return new Promise<void>((resolve) => {
+      const fileName = path.split('/').pop() || '';
       const img = new Image();
-      img.src = `/buildings/${type.toLowerCase()}.png`; 
+      img.src = path; 
       
       img.onload = () => {
-        BUILDING_ICONS[type] = img;
+        BUILDING_ICONS[fileName] = img;
         resolve();
       };
-      
-      img.onerror = () => {
-        console.error(`Failed to load icon: ${img.src}`);
-        resolve();
-      };
+      resolve();
     });
   });
-
+  
   return Promise.all(promises);
 };

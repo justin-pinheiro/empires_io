@@ -5,7 +5,9 @@ import { ResourcesCost } from './ResourcesCost';
 import type { BuildingStats } from '../types/buildingStats';
 import type { Tile } from '../types/tile';
 import { ResourcesUpdate } from './ResourcesUpdate';
-import { RESOURCE_COLORS } from '../types/resources';
+import { hasEnough, RESOURCE_COLORS, type Resources } from '../types/resources';
+import { useGameSounds } from '../hooks/useGameSound';
+import type { Civilisation } from '../types/civilisation';
 
 const RADIAL_CATEGORIES = [
   { label: 'Food', iconKey: 'food', color: RESOURCE_COLORS.food, options: ['FARM', 'FISHING_ZONE'] },
@@ -21,7 +23,7 @@ const FIRST_LEVEL = 1;
 interface RadialMenuProps {
   selectedTile: Tile;
   camera: { x: number; y: number; zoom: number };
-  civilisation: any;
+  civilisation: Civilisation;
   buildingStats: Record<string, Record<number, BuildingStats>>;
   onBuild: (type: string) => void;
 }
@@ -34,6 +36,7 @@ export const BuildRadialMenu: React.FC<RadialMenuProps> = ({
   onBuild 
 }) => {
   const [hoveredKey, setHoveredKey] = useState<string | null>(null);
+  const { playHover, playBuild, playCancel } = useGameSounds();
 
   if (!selectedTile) return null;
 
@@ -44,6 +47,10 @@ export const BuildRadialMenu: React.FC<RadialMenuProps> = ({
   const isTerrainValid = (stats: BuildingStats) => {
     return stats.buildableTerrains.includes(selectedTile.terrain.name);
   };
+
+  const canAfford = (cost: Resources) => {
+    return hasEnough(cost, civilisation.resources);
+  }
 
   const getActiveBuildingInSlot = (options: string[]) => {
     const validOption = options.find(key => {
@@ -83,6 +90,7 @@ export const BuildRadialMenu: React.FC<RadialMenuProps> = ({
           if (!stats) return null;
 
           const terrainValid = isTerrainValid(stats);
+          const affordable = canAfford(stats.resourcesToBuild);
           const isHovered = hoveredKey === activeKey;
           const rotation = i * 60;
 
@@ -93,9 +101,20 @@ export const BuildRadialMenu: React.FC<RadialMenuProps> = ({
                 cursor: terrainValid ? 'pointer' : 'not-allowed', 
                 pointerEvents: 'auto' 
               }}
-              onMouseEnter={() => setHoveredKey(activeKey)}
+              onMouseEnter={() => {
+                if (terrainValid) playHover();
+                setHoveredKey(activeKey);
+              }}
               onMouseLeave={() => setHoveredKey(null)}
-              onClick={() => terrainValid && onBuild(activeKey)}
+              onClick={() => {
+                if (terrainValid && affordable) {
+                  playBuild();
+                  onBuild(activeKey)
+                }
+                else {
+                  playCancel();
+                }
+              }}
             >
               <path
                 d="M 50 50 L 50 5 A 45 45 0 0 1 89 27.5 Z"

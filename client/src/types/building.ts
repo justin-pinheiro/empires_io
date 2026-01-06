@@ -11,5 +11,6 @@ export interface Building {
     resourcesToMaintain: Resources,
     production: Resources,
     productionRate: number,
-    isDestroyed: boolean
+    isDestroyed: boolean,
+    imagePath: string,
 }

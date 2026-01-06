@@ -5,7 +5,6 @@ import type { GameEngine } from '../game/gameEngine.js';
 import { getSerializedBuildingsData } from '../models/buildingData.js';
 import { TERRAIN_DATA } from '../models/terrainTypeEnum.js';
 import { getSerializedAgesData } from '../models/age.js';
-import { Resources } from '../models/resources.js';
 
 const socketsIds : string[] = [];
 
@@ -29,14 +28,15 @@ export const setupSocketHandlers = (io: Server, game: GameEngine) => {
             game.addPlayer(socket.id, "Name");
             broadcastPlayersUpdate(io, game);
 
-            const randomTileId = game.getRandomStartingTile();
-            if (randomTileId)
+            const randomTile = game.getRandomStartingTile();
+            if (randomTile)
             {
-                game.setPlayerCapital(socket.id, randomTileId.getId());
+                game.setPlayerCapital(socket.id, randomTile.getId());
+                game.setStartingResources(socket.id);
                 broadcastTilesUpdates(io, game);
                 broadcastBuildingsUpdates(io, game);
-                Logger.info("Player " + socket.id + " spawned on tile " + randomTileId);
-                io.to(socket.id).emit("civilisationStart", {startTile: {x: randomTileId.getCoords().x, y: randomTileId.getCoords().y}})
+                Logger.info("Player " + socket.id + " spawned on tile " + randomTile.getId());
+                io.to(socket.id).emit("civilisationStart", {startTile: {x: randomTile.getCoords().x, y: randomTile.getCoords().y}})
             }
         });
         

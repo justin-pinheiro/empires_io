@@ -2,11 +2,13 @@ import React, { useState } from 'react';
 import { getHexPixelPos } from '../utils/hexMath';
 import { ResourcesUpdate } from './ResourcesUpdate';
 import { ResourcesCost } from './ResourcesCost';
-import { RESOURCE_COLORS } from '../types/resources';
+import { hasEnough, RESOURCE_COLORS } from '../types/resources';
 import type { Building } from '../types/building';
 import type { Resources } from '../types/resources';
 import type { BuildingStats } from '../types/buildingStats';
 import type { Tile } from '../types/tile';
+import { BuildingType } from '../types/buildingType';
+import { useGameSounds } from '../hooks/useGameSound';
 
 interface BuildingInfoRadialProps {
     selectedTile: Tile;
@@ -18,7 +20,7 @@ interface BuildingInfoRadialProps {
     onDestroy: (building: Building) => void;
 }
 
-type MenuOption = 'INFO' | 'UPGRADE' | 'DESTROY' | null;
+type MenuOption = 'INFO' | 'UPGRADE' | 'DELETE' | null;
 
 export const BuildingInfoRadial: React.FC<BuildingInfoRadialProps> = ({
     selectedTile,
@@ -30,6 +32,7 @@ export const BuildingInfoRadial: React.FC<BuildingInfoRadialProps> = ({
     onDestroy
 }) => {
     const [hoveredOption, setHoveredOption] = useState<MenuOption>(null);
+    const { playHover, playDestroy, playSuccess, playCancel } = useGameSounds();
 
     if (!selectedBuilding) return null;
 
@@ -37,12 +40,12 @@ export const BuildingInfoRadial: React.FC<BuildingInfoRadialProps> = ({
 
     // --- Action Configuration ---
     const ACTIONS = [
-        { id: 'INFO' as MenuOption, label: 'INFO', iconName: 'science.png', color: RESOURCE_COLORS.science, active: true },
-        { id: 'UPGRADE' as MenuOption, label: 'UPGRADE', iconName: 'gold.png', color: RESOURCE_COLORS.gold, active: !!nextLevelStats },
+        { id: 'UPGRADE' as MenuOption, label: 'UPGRADE', iconName: 'upgrade.png', color: RESOURCE_COLORS.gold, active: !!nextLevelStats },
         { id: null as MenuOption, label: '', iconName: '', color: '#333', active: false },
-        { id: 'DESTROY' as MenuOption, label: 'DEMOLISH', iconName: 'soldiers.png', color: RESOURCE_COLORS.soldiers, active: true },
+        { id: 'DELETE' as MenuOption, label: 'DELETE', iconName: 'delete.png', color: RESOURCE_COLORS.soldiers, active: true },
         { id: null as MenuOption, label: '', iconName: '', color: '#333', active: false },
         { id: null as MenuOption, label: '', iconName: '', color: '#333', active: false },
+        { id: 'INFO' as MenuOption, label: 'INFO', iconName: 'information.png', color: RESOURCE_COLORS.science, active: true },
     ];
 
     const renderCenterContent = () => {
@@ -52,8 +55,7 @@ export const BuildingInfoRadial: React.FC<BuildingInfoRadialProps> = ({
             case 'INFO':
                 return (
                     <div style={styles.contentBox}>
-                        <div style={styles.title}>{selectedBuilding.name.toUpperCase()}</div>
-                        <div style={styles.levelBadge}>LEVEL {selectedBuilding.level}</div>
+                        <div style={styles.title}>{selectedBuilding.name.toUpperCase()} - level {selectedBuilding.level}</div>
                         <div style={styles.healthContainer}>
                             <div style={styles.healthBarBg}><div style={{...styles.healthBarFill, width: `${healthPct}%`}} /></div>
                             <span style={styles.hpText}>{Math.floor(selectedBuilding.health.current)} / {selectedBuilding.health.max} HP</span>
@@ -65,16 +67,15 @@ export const BuildingInfoRadial: React.FC<BuildingInfoRadialProps> = ({
                 return nextLevelStats ? (
                     <div style={styles.contentBox}>
                         <div style={{...styles.title, color: RESOURCE_COLORS.gold}}>UPGRADE</div>
-                        <div style={styles.desc}>Boost health to {nextLevelStats.baseHealth}</div>
-                        <ResourcesCost title="Requirements" cost={nextLevelStats.resourcesToBuild} resources={playerResources} />
+                        <ResourcesCost title="Cost" cost={nextLevelStats.resourcesToBuild} resources={playerResources} />
+                        <ResourcesUpdate title="New production" update={nextLevelStats.production} />
                     </div>
                 ) : <div style={styles.contentBox}><div style={styles.title}>MAX LEVEL</div></div>;
-            case 'DESTROY':
+            case 'DELETE':
                 return (
                     <div style={styles.contentBox}>
-                        <div style={{...styles.title, color: RESOURCE_COLORS.soldiers}}>DEMOLISH</div>
-                        <div style={styles.desc}>Refunds 50% materials.</div>
-                        <div style={styles.warningText}>ACTION PERMANENT</div>
+                        <div style={{...styles.title, color: RESOURCE_COLORS.soldiers}}>REMOVE</div>
+                        <div style={styles.warningText}>This action cannot be undone!</div>
                     </div>
                 );
             default:
@@ -95,26 +96,44 @@ export const BuildingInfoRadial: React.FC<BuildingInfoRadialProps> = ({
 
             <svg width="100%" height="100%" viewBox="0 0 100 100" style={{ pointerEvents: 'none' }}>
                 {ACTIONS.map((action, i) => {
+                    if (action.id === "DELETE" && selectedBuilding.type === BuildingType.CAPITAL)
+                        return null;
+
                     const rotation = i * 60;
                     const isHovered = hoveredOption === action.id && action.id !== null;
+                    const canAffordUpgrade = nextLevelStats ? hasEnough(nextLevelStats.resourcesToBuild, playerResources) : false;
 
                     return (
                         <g 
                             key={i}
                             style={{ cursor: action.active ? 'pointer' : 'default', pointerEvents: 'auto' }}
-                            onMouseEnter={() => action.id && setHoveredOption(action.id)}
+                            onMouseEnter={() => {
+                                if (action.active) playHover();
+                                action.id && setHoveredOption(action.id)
+                            }}
                             onMouseLeave={() => setHoveredOption(null)}
                             onClick={(e) => {
                                 e.stopPropagation();
                                 if (!action.active) return;
-                                if (action.id === 'UPGRADE') onUpgrade(selectedBuilding);
-                                if (action.id === 'DESTROY') onDestroy(selectedBuilding);
+                                if (action.id === 'UPGRADE') {
+                                    if (canAffordUpgrade) {
+                                        playSuccess();
+                                        onUpgrade(selectedBuilding);
+                                    }
+                                    else {
+                                        playCancel();
+                                    }
+                                }
+                                if (action.id === 'DELETE') {
+                                    onDestroy(selectedBuilding);
+                                    playDestroy();
+                                };
                             }}
                         >
                             <path
                                 d="M 50 50 L 50 5 A 45 45 0 0 1 89 27.5 Z"
                                 fill={action.color}
-                                opacity={isHovered ? 0.9 : 0.2}
+                                opacity={isHovered ? 0.9 : 0.5}
                                 stroke={action.color}
                                 strokeWidth={isHovered ? "1" : "0.5"}
                                 transform={`rotate(${rotation}, 50, 50)`}
@@ -133,8 +152,8 @@ export const BuildingInfoRadial: React.FC<BuildingInfoRadialProps> = ({
                                             width: '12px',
                                             height: '12px',
                                             backgroundColor: isHovered ? '#fff' : action.color,
-                                            maskImage: `url(/resources/${action.iconName})`,
-                                            WebkitMaskImage: `url(/resources/${action.iconName})`,
+                                            maskImage: `url(/menu/${action.iconName})`,
+                                            WebkitMaskImage: `url(/menu/${action.iconName})`,
                                             maskSize: 'contain',
                                             maskRepeat: 'no-repeat',
                                         }} />
@@ -163,8 +182,8 @@ const styles = {
         left: '50%',
         top: '50%',
         transform: 'translate(-50%, -50%)',
-        width: '100px',
-        height: '100px',
+        width: '250px',
+        height: '70px',
         borderRadius: '16px',
         backgroundColor: 'rgba(10, 10, 10, 0.9)',
         backdropFilter: 'blur(12px)',

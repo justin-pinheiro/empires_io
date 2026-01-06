@@ -68,53 +68,65 @@ export class MapRenderer {
     ctx.restore();
   }
 
-  private static drawBuildings(ctx: CanvasRenderingContext2D, tiles: any[], players: Map<string, any>, buildings: Map<string, any>, camera: any) {
+  private static drawBuildings(
+    ctx: CanvasRenderingContext2D, 
+    tiles: any[], 
+    players: Map<string, any>, 
+    buildings: Map<string, any>, 
+    camera: any
+) {
     if (buildings.size === 0) return;
 
-    // Optimization: Create a Map for tiles if it's currently an array
-    // Ideally, do this once in your Hook, not inside the draw loop!
-    const tileMap = new Map(tiles.map(t => [t.id.toString(), t])); 
-
+    // 1. OPTIMIZATION: Don't create tileMap inside the loop. 
+    // If tiles is an array, it's faster to find via a simple loop or pre-calculate it.
+    // For now, let's use the tiles array efficiently.
     const size = HEX_SIZE * camera.zoom;
 
     buildings.forEach((building, tileId) => {
-      // Ensure tileId is treated as a string to match Map keys
-      const tile = tileMap.get(tileId.toString());
-      
-      if (!tile) {
-        // console.warn(`No tile found for building at ${tileId}`);
-        return;
-      }
+        // Find the tile - Assuming tileId in buildings matches tile.id
+        const tile = tiles.find(t => t.id === tileId || String(t.id) === String(tileId));
+        
+        if (!tile) return;
 
-      const { x, y } = getHexPixelPos(tile.x, tile.y, camera.x, camera.y, camera.zoom);
+        const { x, y } = getHexPixelPos(tile.x, tile.y, camera.x, camera.y, camera.zoom);
 
-      if (this.isOffscreen(x, y, size, ctx.canvas)) return;
+        // 2. Frustum Culling: Skip if off-screen
+        if (this.isOffscreen(x, y, size, ctx.canvas)) return;
 
-      const originalIcon = BUILDING_ICONS[building.type.toUpperCase()];
+        const originalIcon = BUILDING_ICONS[building.imagePath];
 
-      if (originalIcon && originalIcon.complete) {
-          // Find the owner's color (default to white if not found)
-          const owner = players.get(String(building.ownerId));
-          const color = owner ? owner.color : '#ffffff';
+        if (originalIcon && originalIcon.complete) {
+            const owner = players.get(String(building.ownerId));
+            const color = owner ? owner.color : '#ffffff';
 
-          // Get the tinted version
-          const tintedIcon = this.getTintedIcon(originalIcon, color);
+            // 4. Tinting: Using the off-screen canvas tinted version
+            const tintedIcon = this.getTintedIcon(originalIcon, color);
 
-          const iconSize = size * 2;
+            // Buildings should be slightly smaller than the hex to show the terrain underneath
+            const iconSize = size * 2; 
 
-          ctx.drawImage(tintedIcon, x - iconSize / 2, y - iconSize / 2, iconSize, iconSize);
+            ctx.drawImage(
+                tintedIcon, 
+                x - iconSize / 2, 
+                y - iconSize / 2, 
+                iconSize, 
+                iconSize
+            );
         } else {
-        // Temporary fallback: Draw a circle so we can at least see where it should be
-        ctx.beginPath();
-        ctx.arc(x, y, size / 3, 0, Math.PI * 2);
-        ctx.fillStyle = 'red';
-        ctx.fill();
-      }
+            // Fallback while loading
+            ctx.beginPath();
+            ctx.arc(x, y, size / 4, 0, Math.PI * 2);
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.2)';
+            ctx.fill();
+        }
 
-      if (building.health && building.health.current < building.health.max) {
-        this.drawHealthBar(ctx, x, y, size, building.health.current / building.health.max);
-      }
-  });
+        // 5. Health Bar consistency
+        if (building.health && building.health.current < building.health.max) {
+            // Place health bar slightly above the building
+            const barY = y - (size * 0.8);
+            this.drawHealthBar(ctx, x, barY, size, building.health.current / building.health.max);
+        }
+    });
 }
 
   private static drawHealthBar(ctx: CanvasRenderingContext2D, x: number, y: number, size: number, pct: number) {

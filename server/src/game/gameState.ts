@@ -2,7 +2,7 @@ import { Player } from "../models/player.js";
 import { GameMap } from "../models/map.js";
 import { Building } from "../models/building.js";
 import { Civilisation } from "../models/civilisation.js";
-import { BuildingType } from "../models/buildingData.js";
+import { BuildingType, getNextLevel } from "../models/buildingData.js";
 import { Resources } from "../models/resources.js";
 import { ScienceBonusType } from "../models/scienceBonus.js";
 
@@ -47,6 +47,21 @@ export class GameState {
       })
   }
   
+  private setCapacity(playerId: string) {
+    this.getPlayer(playerId)?.getCivilisation().resetCapacity();
+    const buildings = this.map.getAllBuildings();
+    buildings.forEach(building => {
+      if (building && !building.isDestroyed() && building.getOwnerId() === playerId) 
+        {
+          const owner = this.getPlayer(building.getOwnerId());
+          if (owner) {
+            const storage = building.getCapacity();
+            owner.getCivilisation().updateResourcesCapacity(storage, 1);
+          }
+        }
+      })
+  }
+  
   private processAutoRepair(dt: number): void {
     const repairAmount = 1 * dt;
     this.map.getAllBuildings().forEach(building => {
@@ -81,7 +96,6 @@ export class GameState {
       }
       
       civ.subtractFromResources(building.stats.resourcesToBuild);
-      civ.updateResourcesCapacity(building.stats.resourcesCapacityUpgrade, 1);
       
       if (type === BuildingType.CAPITAL) {
         civ.addToResources(new Resources(
@@ -95,6 +109,7 @@ export class GameState {
 
       this.map.setBuilding(tileId, building);
       this.map.setTileOwner(tileId, playerId);
+      this.setCapacity(playerId);
       this.setProduction(playerId);
       
       this.map.getTile(tileId)?.getNeighbors().forEach(neighbor => {
@@ -115,6 +130,19 @@ export class GameState {
       }
     }
   
+    public upgradeBuilding(tileId: string): void {      
+      const building = this.map.getBuilding(tileId)!;
+      const player = this.getPlayer(building?.getOwnerId())!;
+      const civ = player.getCivilisation();
+      
+      const nextLevelCost = getNextLevel(building.type, building.getLevel()).resourcesToBuild;
+		  civ.subtractFromResources(nextLevelCost);
+
+      building.upgrade();
+      this.setProduction(player.getId());
+      this.setCapacity(player.getId());
+    }
+  
   
   public addBarbarianCamp(barbarianId: string, tileId: string): void {
     const player = this.getPlayer(barbarianId);
@@ -127,9 +155,7 @@ export class GameState {
   }
   
   playerDestroyedBuilding(tileId: string, attackerId: string) {
-    this.removeBuilding(tileId);
-    this.getMap().setTileOwner(tileId, attackerId);
-
+    
     const building = this.map.getBuilding(tileId);
     const tower_bonus = 50
       if (building && building.type === BuildingType.FORTIFICATIONS) {
@@ -139,7 +165,10 @@ export class GameState {
           }
         })
       }
-
+      
+    this.removeBuilding(tileId);
+    this.getMap().setTileOwner(tileId, attackerId);
+      
     if (attackerId === "Barbarians")
       this.getMap().setBuilding(tileId, new Building(BuildingType.BARBARIAN_CAMP, attackerId));
     else
@@ -152,11 +181,12 @@ export class GameState {
 
     const player = this.getPlayer(building.getOwnerId());
     if (player) {
-      player.getCivilisation().updateResourcesCapacity(building.stats.resourcesCapacityUpgrade, 1);
-      this.setProduction(player?.getId())
+      this.setProduction(player.getId())
+      this.setCapacity(player.getId())
+      this.map.removeBuilding(tileId);
+      this.getMap().setBuilding(tileId, new Building(BuildingType.OUTPOST, player?.getId()));
     }
 
-    this.map.removeBuilding(tileId);
   }
 
   // --- Player Management ---

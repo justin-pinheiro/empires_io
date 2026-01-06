@@ -73,7 +73,7 @@ export class Civilisation {
         if (nextAge) {
             const nextAgeData = AGES_DATA[nextAge];
             if (currentScience >= nextAgeData.requiredScience) {
-                this.subtractFromResources(new Resources(0,0,0,nextAgeData.requiredScience,0));
+                this.subtractFromResources(new Resources(0,0,nextAgeData.requiredScience,0,0));
                 this.age++;
                 this.research.addUpgradePoint();
                 return true;
@@ -87,10 +87,6 @@ export class Civilisation {
     }
 
     public updateResourcesCapacity(update: Resources, multiplier: number): void {
-        this.addToResources( new Resources (
-            0,0,0,0,update.getWorkers() * multiplier
-        ))
-
         this.resourcesCapacity.add( new Resources (
             Math.max(0, update.getFood() * multiplier),
             Math.max(0, update.getGold() * multiplier),
@@ -102,6 +98,10 @@ export class Civilisation {
 
     public resetProduction() {
         this.production = Resources.zero();
+    }
+
+    public resetCapacity() {
+        this.resourcesCapacity = Resources.zero();
     }
 
     public updateProduction(update: Resources, multiplier: number): void {

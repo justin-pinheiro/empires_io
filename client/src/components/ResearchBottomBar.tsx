@@ -1,8 +1,10 @@
 import React, { useEffect } from 'react';
 import { useResearch } from '../hooks/useResearch';
+import { useGameSounds } from '../hooks/useGameSound';
 
 export const ResearchBottomBar: React.FC = () => {
     const { pendingUpgrades, currentOptions, pullOptions, selectUpgrade, isLoading } = useResearch();
+    const { playSuccess } = useGameSounds();
 
     useEffect(() => {
         if (pendingUpgrades > 0 && currentOptions.length === 0 && !isLoading) {
@@ -38,7 +40,10 @@ export const ResearchBottomBar: React.FC = () => {
                         <button 
                             style={styles.button}
                             disabled={isLoading}
-                            onClick={() => selectUpgrade(option.bonusType)}
+                            onClick={() => {
+                                selectUpgrade(option.bonusType);
+                                playSuccess();
+                            }}
                         >
                             CHOOSE
                         </button>

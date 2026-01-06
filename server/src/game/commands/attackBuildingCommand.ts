@@ -50,7 +50,7 @@ export class AttackBuildingCommand implements ICommand {
 
 	execute(): void {
 		const attackerCivilisation = this.gameState.getPlayer(this.attackerId)?.getCivilisation()!
-		attackerCivilisation.subtractFromResources(new Resources(0,0,0,0,this.troopCount))
+		attackerCivilisation.subtractFromResources(new Resources(0,0,0,this.troopCount,0))
 
 		const building = this.gameState.getMap().getBuilding(this.tileId)
 		building?.takeDamage(this.troopCount * attackerCivilisation.getResearch().getMultiplier(ScienceBonusType.ARMY));

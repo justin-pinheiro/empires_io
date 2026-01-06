@@ -35,6 +35,10 @@ export class Building {
     return levelStats;
 }
 
+  public getCapacity() : Resources {
+    return this.stats.resourcesCapacityUpgrade;
+  }
+
   public getHealth() {
     return { current: this.currentHealth, max: this.maxHealth };
   }
@@ -104,7 +108,8 @@ export class Building {
       health: this.getHealth(),
       production: this.stats.production.serialize(),
       productionRate: this.stats.productionRate,
-      isDestroyed: this.isDestroyed()
+      isDestroyed: this.isDestroyed(),
+      imagePath: this.stats.imagePath,
     };
   }
 

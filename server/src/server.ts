@@ -11,7 +11,7 @@ const app = express();
 const httpServer = createServer(app);
 const io = new Server(httpServer, {
   cors: {
-    origin: "http://localhost:5173",
+    origin: "*",
     methods: ["GET", "POST"]
   }
 });
@@ -26,6 +26,6 @@ setupSocketHandlers(io, game);
 
 app.use(express.static('public'));
 
-httpServer.listen(env.PORT, () => {
-    console.log('Server running on http://localhost:3000');
+httpServer.listen(env.PORT, env.HOST, () => {
+    console.log(`Server running on ${env.HOST}:${env.PORT}`);
 });
