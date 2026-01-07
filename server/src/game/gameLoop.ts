@@ -1,4 +1,4 @@
-import { ONE_SECOND_IN_MILLISECONDS } from "../utils/constants.js";
+import { ONE_SECOND_IN_MILLISECONDS } from "../config/constants.js";
 
 /**
  * A high-precision game loop for Node.js.

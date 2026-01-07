@@ -21,7 +21,7 @@ export class MapRenderer {
 
     // 1. Clear with background color (Optimization: clear only the logical size)
     const dpr = window.devicePixelRatio || 1;
-    ctx.fillStyle = '#1a1a1a';
+    ctx.fillStyle = '#353535ff';
     ctx.fillRect(0, 0, canvas.width / dpr, canvas.height / dpr);
 
     // 2. Render Layers

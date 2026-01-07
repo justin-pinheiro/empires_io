@@ -1,8 +1,9 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import { useCivilisation } from "../hooks/useCivilisation";
 import { useGameConstants } from "../hooks/useGameConstants";
 import { useTiles } from "../hooks/useTiles";
 import { useBuildings } from "../hooks/useBuildings";
+import { useBuildingEvents } from '../hooks/useBuildingEvents';
 import { usePlayersSocket } from "../hooks/usePlayersSockets";
 import { useCamera } from "../hooks/useMapCamera";
 import { socket } from "../socket";
@@ -44,8 +45,9 @@ export const GameView: React.FC = () => {
 
   // 3. Main Render Loop
   useEffect(() => {
-    // Only start if assets are ready and the canvas exists
-    if (!assetsLoaded || !canvasRef.current) return;
+    if (!assetsLoaded || !canvasRef.current) {
+      return;
+    }
 
     const canvas = canvasRef.current;
     const ctx = canvas.getContext('2d', { alpha: false })!;
@@ -64,11 +66,6 @@ export const GameView: React.FC = () => {
 
     let frameId: number;
     const loop = () => {
-      // Manual background clear to prevent black screen flickers
-      ctx.fillStyle = '#1a1a1a';
-      ctx.fillRect(0, 0, window.innerWidth, window.innerHeight);
-
-      // Draw the scene
       MapRenderer.draw(ctx, {
         tiles: tilesRef.current,
         buildings: buildingsRef.current,
@@ -86,8 +83,12 @@ export const GameView: React.FC = () => {
       window.removeEventListener('resize', handleResize);
       cancelAnimationFrame(frameId);
     };
-    // Re-run this effect when tiles first arrive to "kickstart" the canvas
-  }, [assetsLoaded, selectedTileId, tilesRef.current.length]);
+  }, [
+    assetsLoaded, 
+    selectedTileId, 
+    !!constants,
+    !!civilisation
+  ]);
 
   // 4. Handlers
   const handleMapClick = (
@@ -134,6 +135,14 @@ export const GameView: React.FC = () => {
     const nextLevel = currentLevel + 1;
     return constants?.buildingStats[type][nextLevel]!;
   }
+
+  const handleEnemyBuildingDestroyed = useCallback((tileId: string) => {
+  }, []);
+
+  const handleBuildingDestroyedByEnemy = useCallback((tileId: string, building: any) => {
+  }, []);
+
+  useBuildingEvents(handleEnemyBuildingDestroyed, handleBuildingDestroyedByEnemy);
 
   // 5. Early Return (Must be AFTER hooks)
   if (!constants || !civilisation || !assetsLoaded) {

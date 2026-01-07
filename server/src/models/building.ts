@@ -1,4 +1,4 @@
-import { BUILDING_STATS, BuildingType, hasNextLevel, type BuildingStats } from "./buildingData.js";
+import { BUILDING_STATS, BuildingType, hasNextLevel, type BuildingBlueprint, type BuildingDynamicStats } from "./buildingData.js";
 import { Resources } from "./resources.js";
 
 /**
@@ -23,16 +23,15 @@ export class Building {
    * Getter for static stats. 
    * Provides easy access to the 'blueprint' data for this instance.
    */
-  public get stats(): BuildingStats {
-    const levelStats = BUILDING_STATS[this.type][this.level];
+  public get stats(): BuildingBlueprint & BuildingDynamicStats {
+    const stats = BUILDING_STATS[this.type]?.[this.level];
     
-    if (!levelStats) {
+    if (!stats) {
         throw new Error(
             `Configuration Missing: No stats found for ${this.type} at level ${this.level}`
         );
     }
-    
-    return levelStats;
+    return stats;
 }
 
   public getCapacity() : Resources {
@@ -111,9 +110,5 @@ export class Building {
       isDestroyed: this.isDestroyed(),
       imagePath: this.stats.imagePath,
     };
-  }
-
-  public toJSON() {
-    return this.serialize();
   }
 }

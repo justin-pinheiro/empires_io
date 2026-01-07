@@ -1,9 +1,7 @@
+import { BUILDINGS_BARBARIAN_CAMPS_BASE_HEALTH, BUILDINGS_BASE_DEFAULT_CAPACITY, BUILDINGS_BASE_DEFAULT_COST, BUILDINGS_BASE_DEFAULT_HEALTH, BUILDINGS_BASE_HIGH_COST, BUILDINGS_BASE_PRODUCTION, BUILDINGS_CAPACITY_LINEAR_INCREMENT, BUILDINGS_CAPITAL_BASE_CAPACITY, BUILDINGS_CAPITAL_BASE_COST, BUILDINGS_CAPITAL_BASE_HEALTH, BUILDINGS_COST_EXPONENTIAL_FACTOR, BUILDINGS_DEFAULT_VISION, BUILDINGS_FORTIFICATIONS_BASE_HEALTH, BUILDINGS_HEALTH_EXPONENTIAL_FACTOR, BUILDINGS_LONG_VISION, BUILDINGS_OUTPOST_BASE_HEALTH, BUILDINGS_PRODUCTION_EXPONENTIAL_FACTOR } from "../config/constants.js";
 import { Resources } from "./resources.js";
 import { TerrainType } from "./terrainTypeEnum.js";
 
-/**
- * Valid building identifiers to prevent typo-based bugs.
- */
 export enum BuildingType {
 	CAPITAL = "CAPITAL",
 	FARM = "FARM",
@@ -18,542 +16,481 @@ export enum BuildingType {
 	BARBARIAN_CAMP = "BARBARIAN_CAMP",
 }
 
-export interface BuildingStats {
-	readonly name: string;
-	readonly description: string;
-	readonly imagePath: string;
+export const scale = {
+    // Linear: base + (increment * (level - 1))
+    linear: (base: number, inc: number, lvl: number) => base + (inc * (lvl - 1)),
+    // Exponential: base * (multiplier ^ (level - 1))
+    exponential: (base: number, mult: number, lvl: number) => Math.floor(base * Math.pow(mult, lvl - 1)),
+};
+
+export interface BuildingDynamicStats {
 	readonly baseHealth: number;
-	readonly buildableTerrains: readonly TerrainType[];
 	readonly resourcesToBuild: Resources;
 	readonly resourcesCapacityUpgrade: Resources;
 	readonly production: Resources;
 	readonly productionRate: number;
+	readonly imagePath: string;
+}
+
+export interface BuildingBlueprint {
+    readonly name: string;
+    readonly description: string;
+    readonly maxLevel: number;
+	readonly buildableTerrains: TerrainType[];
 	readonly vision: number;
 	readonly buildable: boolean;
+    readonly stats: (level: number) => BuildingDynamicStats;
 }
 
 /**
  * Global registry for building statistics.
  * Wrapped in Object.freeze to ensure runtime immutability.
  */
-export const BUILDING_STATS: Readonly<Record<BuildingType, Record<number, BuildingStats>>> = Object.freeze({
+export const BLUEPRINTS: Record<BuildingType, BuildingBlueprint> = {
 	[BuildingType.CAPITAL]: {
-		1: {
-			buildableTerrains: [TerrainType.PLAIN, TerrainType.DESERT, TerrainType.MOUNTAIN, TerrainType.FOREST],
-			name: "Capital",
-			description: "The capital of your civilisation.",
-			imagePath: "capital.png",
-			baseHealth: 500,
-			resourcesToBuild: Resources.zero(),
-			resourcesCapacityUpgrade: new Resources(100, 100, 99999, 100, 100),
-			production: new Resources(1, 1, 1, 1, 1),
-			productionRate: 1,
-			vision: 3,
-			buildable: false,
-		},
-		2: {
-			buildableTerrains: [TerrainType.PLAIN, TerrainType.DESERT, TerrainType.MOUNTAIN, TerrainType.FOREST],
-			name: "Capital I",
-			description: "The capital of your civilisation.",
-			imagePath: "capital1.png",
-			baseHealth: 1100,
-			resourcesToBuild: new Resources(250, 250, 0, 0, 250),
-			resourcesCapacityUpgrade: new Resources(150, 150, 99999, 150, 150),
-			production: new Resources(2, 2, 2, 2, 2),
-			productionRate: 1,
-			vision: 3,
-			buildable: false,
-		},
-		3: {
-			buildableTerrains: [TerrainType.PLAIN, TerrainType.DESERT, TerrainType.MOUNTAIN, TerrainType.FOREST],
-			name: "Capital II",
-			description: "The capital of your civilisation.",
-			imagePath: "capital2.png",
-			baseHealth: 2300,
-			resourcesToBuild: new Resources(1000, 1000, 0, 0, 1000),
-			resourcesCapacityUpgrade: new Resources(200, 200, 99999, 200, 200),
-			production: new Resources(4, 4, 4, 4, 4),
-			productionRate: 1,
-			vision: 3,
-			buildable: false,
-		},
-		4: {
-			buildableTerrains: [TerrainType.PLAIN, TerrainType.DESERT, TerrainType.MOUNTAIN, TerrainType.FOREST],
-			name: "Capital III",
-			description: "The capital of your civilisation.",
-			imagePath: "capital3.png",
-			baseHealth: 5000,
-			resourcesToBuild: new Resources(2500, 2500, 0, 0, 2500),
-			resourcesCapacityUpgrade: new Resources(250, 250, 99999, 250, 250),
-			production: new Resources(8,8,8,8,8),
-			productionRate: 1,
-			vision: 3,
-			buildable: false,
-		},
-	},
-	[BuildingType.FARM]: {
-		1: {
-			name: "Farm",
-			description: "Produces food to feed your population.",
-			imagePath: "farm.png",
-			baseHealth: 250,
-			buildableTerrains: [TerrainType.PLAIN],
-			resourcesToBuild: new Resources(0,0,0,0,60),
-			resourcesCapacityUpgrade: new Resources(50, 0, 0, 0, 0),
-			production: new Resources(1, 0, 0, 0, 0),
-			productionRate: 1,
-			vision: 1,
-			buildable: true,
-		},
-		2: {
-			name: "Farm I",
-			description: "Produces food to feed your population.",
-			imagePath: "farm1.png",
-			baseHealth: 500,
-			buildableTerrains: [TerrainType.PLAIN],
-			resourcesToBuild: new Resources(0,0,0,0,200),
-			resourcesCapacityUpgrade: new Resources(100, 0, 0, 0, 0),
-			production: new Resources(2, 0, 0, 0, 0),
-			productionRate: 1,
-			vision: 1,
-			buildable: true,
-		},
-		3: {
-			name: "Farm II",
-			description: "Produces food to feed your population.",
-			imagePath: "farm2.png",
-			baseHealth: 900,
-			buildableTerrains: [TerrainType.PLAIN],
-			resourcesToBuild: new Resources(0,0,0,0,750),
-			resourcesCapacityUpgrade: new Resources(200, 0, 0, 0, 0),
-			production: new Resources(4, 0, 0, 0, 0),
-			productionRate: 1,
-			vision: 1,
-			buildable: true,
-		},
-		4: {
-			name: "Farm III",
-			description: "Produces food to feed your population.",
-			imagePath: "farm3.png",
-			baseHealth: 1500,
-			buildableTerrains: [TerrainType.PLAIN],
-			resourcesToBuild: new Resources(0,0,0,0,2000),
-			resourcesCapacityUpgrade: new Resources(400, 0, 0, 0, 0),
-			production: new Resources(8, 0, 0, 0, 0),
-			productionRate: 1,
-			vision: 1,
-			buildable: true,
-		},
-	},
-	[BuildingType.HOUSE]: {
-		1: {
-			name: "House",
-			description: "Adds workers to your empire.",
-			imagePath: "house.png",
-			baseHealth: 250,
-			buildableTerrains: [TerrainType.PLAIN, TerrainType.DESERT, TerrainType.MOUNTAIN, TerrainType.FOREST],
-			resourcesToBuild: new Resources(60,0,0,0,0),
-			resourcesCapacityUpgrade: new Resources(0, 0, 0, 0, 50),
-			production: new Resources(0,0,0,0,1),
-			productionRate: 1,
-			vision: 1,
-			buildable: true,
-		},
-		2: {
-			name: "House I",
-			description: "Adds workers to your empire.",
-			imagePath: "house1.png",
-			baseHealth: 500,
-			buildableTerrains: [TerrainType.PLAIN, TerrainType.DESERT, TerrainType.MOUNTAIN, TerrainType.FOREST],
-			resourcesToBuild: new Resources(200,0,0,0,0),
-			resourcesCapacityUpgrade: new Resources(0, 0, 0, 0, 100),
-			production: new Resources(0,0,0,0,2),
-			productionRate: 1,
-			vision: 1,
-			buildable: true,
-		},
-		3: {
-			name: "House II",
-			description: "Adds workers to your empire.",
-			imagePath: "house2.png",
-			baseHealth: 900,
-			buildableTerrains: [TerrainType.PLAIN, TerrainType.DESERT, TerrainType.MOUNTAIN, TerrainType.FOREST],
-			resourcesToBuild: new Resources(750,0,0,0,0),
-			resourcesCapacityUpgrade: new Resources(0, 0, 0, 0, 200),
-			production: new Resources(0,0,0,0,4),
-			productionRate: 1,
-			vision: 1,
-			buildable: true,
-		},
-		4: {
-			name: "House III",
-			description: "Adds workers to your empire.",
-			imagePath: "house3.png",
-			baseHealth: 1500,
-			buildableTerrains: [TerrainType.PLAIN, TerrainType.DESERT, TerrainType.MOUNTAIN, TerrainType.FOREST],
-			resourcesToBuild: new Resources(2000,0,0,0,0),
-			resourcesCapacityUpgrade: new Resources(0, 0, 0, 0, 400),
-			production: new Resources(0,0,0,0,8),
-			productionRate: 1,
-			vision: 1,
-			buildable: true,
-		},
-	},
-	[BuildingType.BARRACKS]: {
-		1: {
-			name: "Barracks",
-			description: "To train your soldiers.",
-			imagePath: "barracks.png",
-			baseHealth: 250,
-			buildableTerrains: [TerrainType.PLAIN, TerrainType.DESERT, TerrainType.FOREST],
-			resourcesToBuild: new Resources(40,80,0,0,0),
-			resourcesCapacityUpgrade: new Resources(0, 0, 0, 50, 0),
-			production: new Resources(0, 0, 0, 1, 0),
-			productionRate: 1,
-			vision: 1,
-			buildable: true,
-		},
-		2: {
-			name: "Barracks",
-			description: "To train your soldiers.",
-			imagePath: "barracks1.png",
-			baseHealth: 500,
-			buildableTerrains: [TerrainType.PLAIN, TerrainType.DESERT, TerrainType.FOREST],
-			resourcesToBuild: new Resources(150,300,0,0,0),
-			resourcesCapacityUpgrade: new Resources(0, 0, 0, 100, 0),
-			production: new Resources(0, 0, 0, 2, 0),
-			productionRate: 1,
-			vision: 1,
-			buildable: true,
-		},
-		3: {
-			name: "Barracks",
-			description: "To train your soldiers.",
-			imagePath: "barracks2.png",
-			baseHealth: 900,
-			buildableTerrains: [TerrainType.PLAIN, TerrainType.DESERT, TerrainType.FOREST],
-			resourcesToBuild: new Resources(500,1000,0,0,0),
-			resourcesCapacityUpgrade: new Resources(0, 0, 0, 200, 0),
-			production: new Resources(0, 0, 0, 4, 0),
-			productionRate: 1,
-			vision: 1,
-			buildable: true,
-		},
-		4: {
-			name: "Barracks",
-			description: "To train your soldiers.",
-			imagePath: "barracks3.png",
-			baseHealth: 1500,
-			buildableTerrains: [TerrainType.PLAIN, TerrainType.DESERT, TerrainType.FOREST],
-			resourcesToBuild: new Resources(1500,3000,0,0,0),
-			resourcesCapacityUpgrade: new Resources(0, 0, 0, 400, 0),
-			production: new Resources(0, 0, 0, 8, 0),
-			productionRate: 1,
-			vision: 1,
-			buildable: true,
-		},
-	},
-	[BuildingType.LIBRARY]: {
-		1: {
-			name: "Library",
-			description: "Produce science to get discoveries.",
-			imagePath: "library.png",
-			baseHealth: 250,
-			buildableTerrains: [TerrainType.PLAIN, TerrainType.DESERT, TerrainType.MOUNTAIN, TerrainType.FOREST], 
-			resourcesToBuild: new Resources(40,80,0,0,0),
-			resourcesCapacityUpgrade: new Resources(0, 0, 0, 0, 0),
-			production: new Resources(0, 0, 1, 0, 0),
-			productionRate: 1,
-			vision: 1,
-			buildable: true,
-		},
-		2: {
-			name: "Library",
-			description: "Produce science to get discoveries.",
-			imagePath: "library1.png",
-			baseHealth: 500,
-			buildableTerrains: [TerrainType.PLAIN, TerrainType.DESERT, TerrainType.MOUNTAIN, TerrainType.FOREST], 
-			resourcesToBuild: new Resources(150,300,0,0,0),
-			resourcesCapacityUpgrade: new Resources(0, 0, 0, 0, 0),
-			production: new Resources(0, 0, 2, 0, 0),
-			productionRate: 1,
-			vision: 1,
-			buildable: true,
-		},
-		3: {
-			name: "Library",
-			description: "Produce science to get discoveries.",
-			imagePath: "library2.png",
-			baseHealth: 900,
-			buildableTerrains: [TerrainType.PLAIN, TerrainType.DESERT, TerrainType.MOUNTAIN, TerrainType.FOREST], 
-			resourcesToBuild: new Resources(500,1000,0,0,0),
-			resourcesCapacityUpgrade: new Resources(0, 0, 0, 0, 0),
-			production: new Resources(0, 0, 4, 0, 0),
-			productionRate: 1,
-			vision: 1,
-			buildable: true,
-		},
-		4: {
-			name: "Library",
-			description: "Produce science to get discoveries.",
-			imagePath: "library3.png",
-			baseHealth: 1500,
-			buildableTerrains: [TerrainType.PLAIN, TerrainType.DESERT, TerrainType.MOUNTAIN, TerrainType.FOREST], 
-			resourcesToBuild: new Resources(1500,3000,0,0,0),
-			resourcesCapacityUpgrade: new Resources(0, 0, 0, 0, 0),
-			production: new Resources(0, 0, 8, 0, 0),
-			productionRate: 1,
-			vision: 1,
-			buildable: true,
-		},
-	},
-	[BuildingType.MARKET]: {
-		1: {
-			name: "Market",
-			description: "Produce wealth in your empire.",
-			imagePath: "market.png",
-			baseHealth: 300,
-			buildableTerrains: [TerrainType.PLAIN, TerrainType.FOREST],
-			resourcesToBuild: new Resources(50,0,0,0,50),
-			resourcesCapacityUpgrade: new Resources(0, 50, 0, 0, 0),
-			production: new Resources(0, 1, 0, 0, 0),
-			productionRate: 1,
-			vision: 1,
-			buildable: true,
-		},
-		2: {
-			name: "Market",
-			description: "Produce wealth in your empire.",
-			imagePath: "market1.png",
-			baseHealth: 650,
-			buildableTerrains: [TerrainType.PLAIN, TerrainType.FOREST],
-			resourcesToBuild: new Resources(150,0,0,0,150),
-			resourcesCapacityUpgrade: new Resources(0, 100, 0, 0, 0),
-			production: new Resources(0, 2, 0, 0, 0),
-			productionRate: 1,
-			vision: 1,
-			buildable: true,
-		},
-		3: {
-			name: "Market",
-			description: "Produce wealth in your empire.",
-			imagePath: "market2.png",
-			baseHealth: 1100,
-			buildableTerrains: [TerrainType.PLAIN, TerrainType.FOREST],
-			resourcesToBuild: new Resources(500,0,0,0,500),
-			resourcesCapacityUpgrade: new Resources(0, 200, 0, 0, 0),
-			production: new Resources(0, 4, 0, 0, 0),
-			productionRate: 1,
-			vision: 1,
-			buildable: true,
-		},
-		4: {
-			name: "Market",
-			description: "Produce wealth in your empire.",
-			imagePath: "market3.png",
-			baseHealth: 1800,
-			buildableTerrains: [TerrainType.PLAIN, TerrainType.FOREST],
-			resourcesToBuild: new Resources(1500,0,0,0,1500),
-			resourcesCapacityUpgrade: new Resources(0, 400, 0, 0, 0),
-			production: new Resources(0, 8, 0, 0, 0),
-			productionRate: 1,
-			vision: 1,
-			buildable: true,
-		},
-	},
-	[BuildingType.MINE]: {
-		1: {
-			name: "Mine",
-			description: "Produce wealth in your empire.",
-			imagePath: "mine.png",
-			baseHealth: 300,
-			buildableTerrains: [TerrainType.MOUNTAIN, TerrainType.DESERT],
-			resourcesToBuild: new Resources(50,0,0,0,50),
-			resourcesCapacityUpgrade: new Resources(0, 50, 0, 0, 0),
-			production: new Resources(0, 1, 0, 0, 0),
-			productionRate: 1,
-			vision: 1,
-			buildable: true,
-		},
-		2: {
-			name: "Mine",
-			description: "Produce wealth in your empire.",
-			imagePath: "mine1.png",
-			baseHealth: 650,
-			buildableTerrains: [TerrainType.MOUNTAIN, TerrainType.DESERT],
-			resourcesToBuild: new Resources(150,0,0,0,150),
-			resourcesCapacityUpgrade: new Resources(0, 100, 0, 0, 0),
-			production: new Resources(0, 2, 0, 0, 0),
-			productionRate: 1,
-			vision: 1,
-			buildable: true,
-		},
-		3: {
-			name: "Mine",
-			description: "Produce wealth in your empire.",
-			imagePath: "mine2.png",
-			baseHealth: 1100,
-			buildableTerrains: [TerrainType.MOUNTAIN, TerrainType.DESERT],
-			resourcesToBuild: new Resources(500,0,0,0,500),
-			resourcesCapacityUpgrade: new Resources(0, 200, 0, 0, 0),
-			production: new Resources(0, 4, 0, 0, 0),
-			productionRate: 1,
-			vision: 1,
-			buildable: true,
-		},
-		4: {
-			name: "Mine",
-			description: "Produce wealth in your empire.",
-			imagePath: "mine3.png",
-			baseHealth: 1800,
-			buildableTerrains: [TerrainType.MOUNTAIN, TerrainType.DESERT],
-			resourcesToBuild: new Resources(1500,0,0,0,1500),
-			resourcesCapacityUpgrade: new Resources(0, 400, 0, 0, 0),
-			production: new Resources(0, 8, 0, 0, 0),
-			productionRate: 1,
-			vision: 1,
-			buildable: true,
-		},
-	},
-	[BuildingType.FORTIFICATIONS]: {
-		1: {
-			name: "Fortifications",
-			description: "A strong fortification to defend your ground.",
-			imagePath: "fortifications.png",
-			baseHealth: 500,
-			buildableTerrains: [TerrainType.MOUNTAIN, TerrainType.PLAIN, TerrainType.FOREST, TerrainType.DESERT],
-			resourcesToBuild: new Resources(0,150,0,0,0),
-			resourcesCapacityUpgrade: new Resources(0, 0, 0, 0, 0),
-			production: Resources.zero(),
-			productionRate: 0,
-			vision: 3,
-			buildable: true,
-		},
-		2: {
-			name: "Fortifications",
-			description: "A strong fortification to defend your ground.",
-			imagePath: "fortifications1.png",
-			baseHealth: 1100,
-			buildableTerrains: [TerrainType.MOUNTAIN, TerrainType.PLAIN, TerrainType.FOREST, TerrainType.DESERT],
-			resourcesToBuild: new Resources(0,500,0,0,0),
-			resourcesCapacityUpgrade: new Resources(0, 0, 0, 0, 0),
-			production: Resources.zero(),
-			productionRate: 0,
-			vision: 3,
-			buildable: true,
-		},
-		3: {
-			name: "Fortifications",
-			description: "A strong fortification to defend your ground.",
-			imagePath: "fortifications2.png",
-			baseHealth: 2300,
-			buildableTerrains: [TerrainType.MOUNTAIN, TerrainType.PLAIN, TerrainType.FOREST, TerrainType.DESERT],
-			resourcesToBuild: new Resources(0,2000,0,0,0),
-			resourcesCapacityUpgrade: new Resources(0, 0, 0, 0, 0),
-			production: Resources.zero(),
-			productionRate: 0,
-			vision: 3,
-			buildable: true,
-		},
-		4: {
-			name: "Fortifications",
-			description: "A strong fortification to defend your ground.",
-			imagePath: "fortifications3.png",
-			baseHealth: 5000,
-			buildableTerrains: [TerrainType.MOUNTAIN, TerrainType.PLAIN, TerrainType.FOREST, TerrainType.DESERT],
-			resourcesToBuild: new Resources(0,7500,0,0,0),
-			resourcesCapacityUpgrade: new Resources(0, 0, 0, 0, 0),
-			production: Resources.zero(),
-			productionRate: 0,
-			vision: 3,
-			buildable: true,
-		},
+		name: "Capital",
+		description: "The capital of your civilisation.",
+        maxLevel: 4,
+		buildableTerrains: [TerrainType.PLAIN, TerrainType.DESERT, TerrainType.MOUNTAIN, TerrainType.FOREST],
+		vision: BUILDINGS_LONG_VISION,
+		buildable: false,
+        stats: (lvl) => ({
+            imagePath: `capital${lvl > 1 ? lvl - 1 : ""}.png`,
+            baseHealth: scale.exponential(
+                BUILDINGS_CAPITAL_BASE_HEALTH, 
+                BUILDINGS_HEALTH_EXPONENTIAL_FACTOR, 
+                lvl
+            ),
+            resourcesToBuild: Resources.from({
+				food: lvl == 1 ? 0 : scale.exponential(
+                    BUILDINGS_CAPITAL_BASE_COST, 
+                    BUILDINGS_COST_EXPONENTIAL_FACTOR, 
+                    lvl-1
+                ), 
+				gold: lvl == 1 ? 0 : scale.exponential(
+                    BUILDINGS_CAPITAL_BASE_COST, 
+                    BUILDINGS_COST_EXPONENTIAL_FACTOR, 
+                    lvl-1
+                ), 
+				workers: lvl == 1 ? 0 : scale.exponential(
+                    BUILDINGS_CAPITAL_BASE_COST, 
+                    BUILDINGS_COST_EXPONENTIAL_FACTOR, 
+                    lvl-1
+                ), 
+			}),
+            resourcesCapacityUpgrade: new Resources(
+				scale.linear(
+                    BUILDINGS_CAPITAL_BASE_CAPACITY, 
+                    BUILDINGS_CAPACITY_LINEAR_INCREMENT, 
+                    lvl
+                ), 
+				scale.linear(
+                    BUILDINGS_CAPITAL_BASE_CAPACITY, 
+                    BUILDINGS_CAPACITY_LINEAR_INCREMENT, 
+                    lvl
+                ), 
+				scale.linear(
+                    BUILDINGS_CAPITAL_BASE_CAPACITY, 
+                    BUILDINGS_CAPACITY_LINEAR_INCREMENT, 
+                    lvl
+                ), 
+				scale.linear(
+                    BUILDINGS_CAPITAL_BASE_CAPACITY, 
+                    BUILDINGS_CAPACITY_LINEAR_INCREMENT, 
+                    lvl
+                ), 
+				scale.linear(
+                    BUILDINGS_CAPITAL_BASE_CAPACITY, 
+                    BUILDINGS_CAPACITY_LINEAR_INCREMENT, 
+                    lvl
+                ), 
+			),
+            production: new Resources(
+				scale.exponential(
+                    BUILDINGS_BASE_PRODUCTION, 
+                    BUILDINGS_PRODUCTION_EXPONENTIAL_FACTOR, 
+                    lvl
+                ), 
+				scale.exponential(
+                    BUILDINGS_BASE_PRODUCTION, 
+                    BUILDINGS_PRODUCTION_EXPONENTIAL_FACTOR, 
+                    lvl
+                ), 
+				scale.exponential(
+                    BUILDINGS_BASE_PRODUCTION, 
+                    BUILDINGS_PRODUCTION_EXPONENTIAL_FACTOR, 
+                    lvl
+                ), 
+				scale.exponential(
+                    BUILDINGS_BASE_PRODUCTION, 
+                    BUILDINGS_PRODUCTION_EXPONENTIAL_FACTOR, 
+                    lvl
+                ), 
+				scale.exponential(
+                    BUILDINGS_BASE_PRODUCTION, 
+                    BUILDINGS_PRODUCTION_EXPONENTIAL_FACTOR, 
+                    lvl
+                ),
+			),
+            productionRate: 1,
+        })
 	},
 	[BuildingType.OUTPOST]: {
-	1: {
 		name: "Outpost",
 		description: "Building used to claim territory. Can be replaced by another building.",
-		imagePath: "outpost.png",
-		baseHealth: 500,
-		buildableTerrains: [TerrainType.PLAIN, TerrainType.FOREST, TerrainType.DESERT, TerrainType.MOUNTAIN, TerrainType.WATER],
-		resourcesToBuild: Resources.zero(),
-		resourcesCapacityUpgrade: Resources.zero(),
-		production: Resources.zero(),
-		productionRate: 0,
-		vision: 1,
-		buildable: false,
-		},
+        maxLevel: 1,
+		buildableTerrains: [TerrainType.WATER, TerrainType.MOUNTAIN, TerrainType.PLAIN, TerrainType.FOREST, TerrainType.DESERT],
+		vision: BUILDINGS_DEFAULT_VISION,
+		buildable: true,
+        stats: (lvl) => ({
+            imagePath: `outpost.png`,
+            baseHealth: BUILDINGS_OUTPOST_BASE_HEALTH,
+			resourcesToBuild: Resources.zero(),
+			resourcesCapacityUpgrade: Resources.zero(), 
+            production: Resources.zero(),
+            productionRate: 0,
+        })
+	},
+	[BuildingType.FARM]: {
+		name: "Farm",
+		description: "Produces food to feed your population.",
+        maxLevel: 4,
+		buildableTerrains: [TerrainType.PLAIN],
+		vision: BUILDINGS_DEFAULT_VISION,
+		buildable: true,
+        stats: (lvl) => ({
+            imagePath: `farm${lvl > 1 ? lvl - 1 : ""}.png`,
+            baseHealth: scale.exponential(
+                BUILDINGS_BASE_DEFAULT_HEALTH, 
+                BUILDINGS_HEALTH_EXPONENTIAL_FACTOR, 
+                lvl
+            ),
+			resourcesToBuild: Resources.from({ 
+                workers: scale.exponential(
+                    BUILDINGS_BASE_DEFAULT_COST, 
+                    BUILDINGS_COST_EXPONENTIAL_FACTOR, 
+                    lvl
+                ) 
+            }),            
+			resourcesCapacityUpgrade: Resources.from({ 
+                food: scale.linear(
+                    BUILDINGS_BASE_DEFAULT_CAPACITY, 
+                    BUILDINGS_CAPACITY_LINEAR_INCREMENT, 
+                    lvl
+                ) 
+            }), 
+            production: Resources.from({ 
+                food: scale.exponential(
+                    BUILDINGS_BASE_PRODUCTION, 
+                    BUILDINGS_PRODUCTION_EXPONENTIAL_FACTOR, 
+                    lvl
+                ) 
+            }),
+            productionRate: 1,
+        })
 	},
 	[BuildingType.FISHING_ZONE]: {
-		1: {
-			name: "Fishing zone",
-			description: "Produces food to feed your population.",
-			imagePath: "fishing_zone.png",
-			baseHealth: 250,
-			buildableTerrains: [TerrainType.WATER],
-			resourcesToBuild: new Resources(0,0,0,0,60),
-			resourcesCapacityUpgrade: new Resources(50, 0, 0, 0, 0),
-			production: new Resources(1, 0, 0, 0, 0),
-			productionRate: 1,
-			vision: 1,
-			buildable: true,
-		},
-		2: {
-			name: "Fishing zone",
-			description: "Produces food to feed your population.",
-			imagePath: "fishing_zone1.png",
-			baseHealth: 500,
-			buildableTerrains: [TerrainType.WATER],
-			resourcesToBuild: new Resources(0,0,0,0,200),
-			resourcesCapacityUpgrade: new Resources(100, 0, 0, 0, 0),
-			production: new Resources(2, 0, 0, 0, 0),
-			productionRate: 1,
-			vision: 1,
-			buildable: true,
-		},
-		3: {
-			name: "Fishing zone",
-			description: "Produces food to feed your population.",
-			imagePath: "fishing_zone2.png",
-			baseHealth: 900,
-			buildableTerrains: [TerrainType.WATER],
-			resourcesToBuild: new Resources(0,0,0,0,750),
-			resourcesCapacityUpgrade: new Resources(200, 0, 0, 0, 0),
-			production: new Resources(4, 0, 0, 0, 0),
-			productionRate: 1,
-			vision: 1,
-			buildable: true,
-		},
-		4: {
-			name: "Fishing zone",
-			description: "Produces food to feed your population.",
-			imagePath: "fishing_zone3.png",
-			baseHealth: 1500,
-			buildableTerrains: [TerrainType.WATER],
-			resourcesToBuild: new Resources(0,0,0,0,2000),
-			resourcesCapacityUpgrade: new Resources(400, 0, 0, 0, 0),
-			production: new Resources(8, 0, 0, 0, 0),
-			productionRate: 1,
-			vision: 1,
-			buildable: true,
-		},
+		name: "Fishing zone",
+		description: "Produces food to feed your population.",
+        maxLevel: 4,
+		buildableTerrains: [TerrainType.WATER],
+		vision: 1,
+		buildable: true,
+        stats: (lvl) => ({
+            imagePath: `fishing_zone${lvl > 1 ? lvl - 1 : ""}.png`,
+            baseHealth: scale.exponential(
+                BUILDINGS_BASE_DEFAULT_HEALTH, 
+                BUILDINGS_HEALTH_EXPONENTIAL_FACTOR, 
+                lvl
+            ),
+			resourcesToBuild: Resources.from({ 
+                workers: scale.exponential(
+                    BUILDINGS_BASE_DEFAULT_COST, 
+                    BUILDINGS_COST_EXPONENTIAL_FACTOR, 
+                    lvl
+                ) 
+            }),            
+			resourcesCapacityUpgrade: Resources.from({ 
+                food: scale.linear(
+                    BUILDINGS_BASE_DEFAULT_CAPACITY, 
+                    BUILDINGS_CAPACITY_LINEAR_INCREMENT, 
+                    lvl
+                ) 
+            }), 
+            production: Resources.from({ 
+                food: scale.exponential(
+                    BUILDINGS_BASE_PRODUCTION, 
+                    BUILDINGS_PRODUCTION_EXPONENTIAL_FACTOR, 
+                    lvl
+                ) 
+            }),
+            productionRate: 1,
+        })
+	},
+	[BuildingType.MARKET]: {
+		name: "Market",
+		description: "Produce wealth in your empire.",
+        maxLevel: 4,
+		buildableTerrains: [TerrainType.PLAIN, TerrainType.FOREST],
+		vision: 1,
+		buildable: true,
+        stats: (lvl) => ({
+            imagePath: `market${lvl > 1 ? lvl - 1 : ""}.png`,
+            baseHealth: scale.exponential(
+                BUILDINGS_BASE_DEFAULT_HEALTH, 
+                BUILDINGS_HEALTH_EXPONENTIAL_FACTOR, 
+                lvl
+            ),
+			resourcesToBuild: Resources.from({ 
+                workers: scale.exponential(
+                    BUILDINGS_BASE_DEFAULT_COST, 
+                    BUILDINGS_COST_EXPONENTIAL_FACTOR, 
+                    lvl
+                ),
+                food: scale.exponential(
+                    BUILDINGS_BASE_DEFAULT_COST, 
+                    BUILDINGS_COST_EXPONENTIAL_FACTOR, 
+                    lvl
+                )
+            }),            
+			resourcesCapacityUpgrade: Resources.from({ 
+                gold: scale.linear(
+                    BUILDINGS_BASE_DEFAULT_CAPACITY, 
+                    BUILDINGS_CAPACITY_LINEAR_INCREMENT, 
+                    lvl
+                ) 
+            }), 
+            production: Resources.from({ 
+                gold: scale.exponential(
+                    BUILDINGS_BASE_PRODUCTION, 
+                    BUILDINGS_PRODUCTION_EXPONENTIAL_FACTOR, 
+                    lvl
+                ) 
+            }),
+            productionRate: 1,
+        })
+	},
+	[BuildingType.MINE]: {
+		name: "Mine",
+		description: "Produce wealth in your empire.",
+        maxLevel: 4,
+		buildableTerrains: [TerrainType.MOUNTAIN, TerrainType.DESERT],
+		vision: 1,
+		buildable: true,
+        stats: (lvl) => ({
+            imagePath: `mine${lvl > 1 ? lvl - 1 : ""}.png`,
+            baseHealth: scale.exponential(
+                BUILDINGS_BASE_DEFAULT_HEALTH, 
+                BUILDINGS_HEALTH_EXPONENTIAL_FACTOR, 
+                lvl
+            ),
+			resourcesToBuild: Resources.from({ 
+                workers: scale.exponential(
+                    BUILDINGS_BASE_DEFAULT_COST, 
+                    BUILDINGS_COST_EXPONENTIAL_FACTOR, 
+                    lvl
+                ),
+                food: scale.exponential(
+                    BUILDINGS_BASE_DEFAULT_COST, 
+                    BUILDINGS_COST_EXPONENTIAL_FACTOR, 
+                    lvl
+                )
+            }),            
+			resourcesCapacityUpgrade: Resources.from({ 
+                gold: scale.linear(
+                    BUILDINGS_BASE_DEFAULT_CAPACITY, 
+                    BUILDINGS_CAPACITY_LINEAR_INCREMENT, 
+                    lvl
+                ) 
+            }), 
+            production: Resources.from({ 
+                gold: scale.exponential(
+                    BUILDINGS_BASE_PRODUCTION, 
+                    BUILDINGS_PRODUCTION_EXPONENTIAL_FACTOR, 
+                    lvl
+                ) 
+            }),
+            productionRate: 1,
+        })
+	},
+	[BuildingType.LIBRARY]: {
+		name: "Library",
+		description: "Produce science to get discoveries.",
+        maxLevel: 4,
+		buildableTerrains: [TerrainType.PLAIN, TerrainType.DESERT, TerrainType.MOUNTAIN, TerrainType.FOREST],
+		vision: 1,
+		buildable: true,
+        stats: (lvl) => ({
+            imagePath: `library${lvl > 1 ? lvl - 1 : ""}.png`,
+            baseHealth: scale.exponential(
+                BUILDINGS_BASE_DEFAULT_HEALTH, 
+                BUILDINGS_HEALTH_EXPONENTIAL_FACTOR, 
+                lvl
+            ),
+			resourcesToBuild: Resources.from({ 
+                gold: scale.exponential(
+                    BUILDINGS_BASE_DEFAULT_COST, 
+                    BUILDINGS_COST_EXPONENTIAL_FACTOR, 
+                    lvl
+                )
+            }),  
+			resourcesCapacityUpgrade: Resources.from({ 
+                science: scale.linear(
+                    BUILDINGS_BASE_DEFAULT_CAPACITY, 
+                    BUILDINGS_CAPACITY_LINEAR_INCREMENT, 
+                    lvl
+                ) 
+            }), 
+            production: Resources.from({ 
+                science: scale.exponential(
+                    BUILDINGS_BASE_PRODUCTION, 
+                    BUILDINGS_PRODUCTION_EXPONENTIAL_FACTOR, 
+                    lvl
+                ) 
+            }),
+            productionRate: 1,
+        })
+	},
+	[BuildingType.BARRACKS]: {
+		name: "Barracks",
+		description: "To train your soldiers.",
+        maxLevel: 4,
+		buildableTerrains: [TerrainType.PLAIN, TerrainType.DESERT, TerrainType.MOUNTAIN, TerrainType.FOREST],
+		vision: 1,
+		buildable: true,
+        stats: (lvl) => ({
+            imagePath: `barracks${lvl > 1 ? lvl - 1 : ""}.png`,
+            baseHealth: scale.exponential(
+                BUILDINGS_BASE_DEFAULT_HEALTH, 
+                BUILDINGS_HEALTH_EXPONENTIAL_FACTOR, 
+                lvl
+            ),
+			resourcesToBuild: Resources.from({ 
+                gold: scale.exponential(
+                    BUILDINGS_BASE_DEFAULT_COST, 
+                    BUILDINGS_COST_EXPONENTIAL_FACTOR, 
+                    lvl
+                )
+            }),  
+			resourcesCapacityUpgrade: Resources.from({ 
+                soldiers: scale.linear(
+                    BUILDINGS_BASE_DEFAULT_CAPACITY, 
+                    BUILDINGS_CAPACITY_LINEAR_INCREMENT, 
+                    lvl
+                ) 
+            }), 
+            production: Resources.from({ 
+                soldiers: scale.exponential(
+                    BUILDINGS_BASE_PRODUCTION, 
+                    BUILDINGS_PRODUCTION_EXPONENTIAL_FACTOR, 
+                    lvl
+                ) 
+            }),
+            productionRate: 1,
+        })
+	},
+	[BuildingType.HOUSE]: {
+		name: "House",
+		description: "Adds workers to your empire.",
+        maxLevel: 4,
+		buildableTerrains: [TerrainType.PLAIN, TerrainType.DESERT, TerrainType.MOUNTAIN, TerrainType.FOREST],
+		vision: 1,
+		buildable: true,
+        stats: (lvl) => ({
+            imagePath: `house${lvl > 1 ? lvl - 1 : ""}.png`,
+            baseHealth: scale.exponential(
+                BUILDINGS_BASE_DEFAULT_HEALTH, 
+                BUILDINGS_HEALTH_EXPONENTIAL_FACTOR, 
+                lvl
+            ),
+			resourcesToBuild: Resources.from({ 
+                food: scale.exponential(
+                    BUILDINGS_BASE_DEFAULT_COST, 
+                    BUILDINGS_COST_EXPONENTIAL_FACTOR, 
+                    lvl
+                )
+            }),  
+			resourcesCapacityUpgrade: Resources.from({ 
+                workers: scale.linear(
+                    BUILDINGS_BASE_DEFAULT_CAPACITY, 
+                    BUILDINGS_CAPACITY_LINEAR_INCREMENT, 
+                    lvl
+                ) 
+            }), 
+            production: Resources.from({ 
+                workers: scale.exponential(
+                    BUILDINGS_BASE_PRODUCTION, 
+                    BUILDINGS_PRODUCTION_EXPONENTIAL_FACTOR, 
+                    lvl
+                ) 
+            }),
+            productionRate: 1,
+        })
+	},
+	[BuildingType.FORTIFICATIONS]: {
+		name: "Fortifications",
+		description: "A strong fortification to defend your ground.",
+        maxLevel: 4,
+		buildableTerrains: [TerrainType.MOUNTAIN, TerrainType.PLAIN, TerrainType.FOREST, TerrainType.DESERT],
+		vision: 3,
+		buildable: true,
+        stats: (lvl) => ({
+            imagePath: `fortifications${lvl > 1 ? lvl - 1 : ""}.png`,
+            baseHealth: scale.exponential(
+                BUILDINGS_FORTIFICATIONS_BASE_HEALTH, 
+                BUILDINGS_HEALTH_EXPONENTIAL_FACTOR, 
+                lvl
+            ),			
+            resourcesToBuild: Resources.from({ 
+                gold: scale.exponential(
+                    BUILDINGS_BASE_HIGH_COST, 
+                    BUILDINGS_COST_EXPONENTIAL_FACTOR, 
+                    lvl
+                )
+            }), 
+			resourcesCapacityUpgrade: Resources.zero(), 
+            production: Resources.zero(),
+            productionRate: 0,
+        })
 	},
 	[BuildingType.BARBARIAN_CAMP]: {
-	1: {
 		name: "Barbarian Camp",
 		description: "Ennemy barbarian camp.",
-		imagePath: "barbarian_camp.png",
-		baseHealth: 300,
-		buildableTerrains: [TerrainType.PLAIN, TerrainType.FOREST, TerrainType.DESERT, TerrainType.MOUNTAIN],
-		resourcesToBuild: Resources.zero(),
-		resourcesCapacityUpgrade: new Resources(0, 0, 0, 99999, 0),
-		production: new Resources(0,0,0,99999,0),
-		productionRate: 0,
+        maxLevel: 1,
+		buildableTerrains: [TerrainType.MOUNTAIN, TerrainType.PLAIN, TerrainType.FOREST, TerrainType.DESERT],
 		vision: 0,
 		buildable: false,
-		},
-	}
-});
+        stats: (lvl) => ({
+            imagePath: `barbarian_camp.png`,
+            baseHealth: BUILDINGS_BARBARIAN_CAMPS_BASE_HEALTH,
+			resourcesToBuild: Resources.zero(),
+			resourcesCapacityUpgrade: Resources.from({ soldiers: 99999 }), 
+            production: Resources.from({ soldiers: 99999 }),
+            productionRate: 1,
+        })
+	},
+};
+
+export const BUILDING_STATS: Record<BuildingType, Record<number, BuildingDynamicStats & BuildingBlueprint>> = Object.freeze(    Object.fromEntries(
+        Object.entries(BLUEPRINTS).map(([type, bp]) => [
+            type,
+            Object.fromEntries(
+                Array.from({ length: bp.maxLevel }, (_, i) => [
+                    i + 1, 
+                    {
+                        name: bp.name,
+                        description: bp.description,
+						maxLevel: bp.maxLevel,
+                        buildableTerrains: bp.buildableTerrains,
+                        vision: bp.vision,
+                        buildable: bp.buildable,
+                        ...bp.stats(i + 1) 
+                    }
+                ])
+            )
+        ])
+	) as Record<BuildingType, Record<number, BuildingDynamicStats & BuildingBlueprint>>
+);
 
 /**
  * Checks if a higher level is defined in the registry for a specific building.
@@ -566,23 +503,41 @@ export function hasNextLevel(type: BuildingType, currentLevel: number): boolean 
 /**
  * Returns next level stats for a specific building. Assumes it exist.
  */
-export function getNextLevel(type: BuildingType, currentLevel: number): BuildingStats {
+export function getNextLevel(type: BuildingType, currentLevel: number): BuildingDynamicStats {
     const nextLevel = currentLevel + 1;
-    return BUILDING_STATS[type][nextLevel]!;
+    const stats = BUILDING_STATS[type]?.[nextLevel];
+    
+    if (!stats) {
+        throw new Error(`Level ${nextLevel} for building ${type} does not exist in registry.`);
+    }
+    
+    return stats;
 }
 
 export function getSerializedBuildingsData() {
     return Object.fromEntries(
-        Object.entries(BUILDING_STATS).map(([buildingType, levels]) => [
+        Object.entries(BLUEPRINTS).map(([buildingType, bp]) => [
             buildingType,
             Object.fromEntries(
-                Object.entries(levels).map(([level, stats]) => [
-                    level,
-                    {
-                        ...stats,
-                        buildableTerrains: stats.buildableTerrains.map(t => TerrainType[t])
-                    }
-                ])
+                Array.from({ length: bp.maxLevel }, (_, i) => {
+                    const level = i + 1;
+                    const stats = bp.stats(level);
+                    
+                    return [
+                        level,
+                        {
+                            name: bp.name,
+                            description: bp.description,
+                            vision: bp.vision,
+                            buildable: bp.buildable,
+                            buildableTerrains: bp.buildableTerrains.map(t => TerrainType[t]),
+                            ...stats,
+                            resourcesToBuild: { ...stats.resourcesToBuild },
+                            resourcesCapacityUpgrade: { ...stats.resourcesCapacityUpgrade },
+                            production: { ...stats.production }
+                        }
+                    ];
+                })
             )
         ])
     );

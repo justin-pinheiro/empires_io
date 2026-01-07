@@ -1,6 +1,6 @@
-import { getNextLevel, hasNextLevel } from "../../models/buildingData.js";
-import type { ICommand } from "../../utils/ICommand.js";
-import type { GameState } from "../gameState.js";
+import { getNextLevel, hasNextLevel } from "../models/buildingData.js";
+import type { ICommand } from "../interfaces/ICommand.js";
+import type { GameState } from "../game/gameState.js";
 
 export class UpgradeBuildingCommand implements ICommand {
 	constructor(
@@ -28,7 +28,7 @@ export class UpgradeBuildingCommand implements ICommand {
 		
 		const nextLevelCost = getNextLevel(upgradedBuilding!.type, upgradedBuilding.getLevel()).resourcesToBuild;
 		if (!player.getCivilisation().getResources().hasEnough(nextLevelCost))
-			return "Not enough resources to upgrade!"
+			return `Not enough resources to upgrade! (cost = ${JSON.stringify(nextLevelCost)})`
 
 		return null
 	}

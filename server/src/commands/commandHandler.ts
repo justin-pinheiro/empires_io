@@ -1,5 +1,5 @@
-import Logger from '../../utils/logger.js';
-import type { ICommand } from '../../utils/ICommand.js';
+import Logger from '../config/logger.js';
+import type { ICommand } from '../interfaces/ICommand.js';
 
 export class CommandHandler {    
     public handleCommand(command: ICommand): { success: boolean; error?: string } {

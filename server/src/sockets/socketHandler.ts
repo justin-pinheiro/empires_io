@@ -1,10 +1,11 @@
 import { Server, Socket } from 'socket.io';
 
-import Logger from '../utils/logger.js';
+import Logger from '../config/logger.js';
 import type { GameEngine } from '../game/gameEngine.js';
 import { getSerializedBuildingsData } from '../models/buildingData.js';
 import { TERRAIN_DATA } from '../models/terrainTypeEnum.js';
 import { getSerializedAgesData } from '../models/age.js';
+import type { Building } from '../models/building.js';
 
 const socketsIds : string[] = [];
 
@@ -46,6 +47,7 @@ export const setupSocketHandlers = (io: Server, game: GameEngine) => {
             if (index !== -1) socketsIds.splice(index, 1);
             game.removePlayer(socket.id);
             broadcastPlayersUpdate(io, game);
+            broadcastTilesUpdates(io, game);
             broadcastBuildingsUpdates(io, game);
             broadcastCivilisationUpdates(io, game);
         });
@@ -116,12 +118,17 @@ export const setupSocketHandlers = (io: Server, game: GameEngine) => {
 
     game.on('buildingsUpdate', () => {
         broadcastBuildingsUpdates(io, game);
-        broadcastTilesUpdates(io, game);
     });
 
     game.on('ageIncrease', (socketId: string, age: number) => {
         io.to(socketId).emit('ageIncrease', age);
         io.to(socketId).emit('available_upgrade_alert'); 
+        broadcastCivilisationUpdates(io, game);
+    });
+
+    game.on('buildingDestroyed', (attackerSocketId: string, tileId: string, building: Building) => {
+        io.to(attackerSocketId).emit('enemyBuildingDestroyed', tileId);
+        io.to(building.getOwnerId()).emit('buildingDestroyedByEnemy', tileId, building); 
         broadcastCivilisationUpdates(io, game);
     });
 };
@@ -141,8 +148,7 @@ function broadcastBuildingsUpdates(io: Server, game: GameEngine) {
 
 function broadcastTilesUpdates(io: Server, game: GameEngine) {
     for (const id of socketsIds) {
-        const tiles = game.getVisibleTilesForPlayer(id);
-        io.to(id).emit('mapUpdate', tiles);
+        io.to(id).emit('mapUpdate', game.getVisibleTilesForPlayer(id));
     }
 }
 

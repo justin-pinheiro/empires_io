@@ -1,9 +1,7 @@
-import { Building } from "../../models/building.js";
-import { BuildingType } from "../../models/buildingData.js";
-import { Resources } from "../../models/resources.js";
-import { ScienceBonusType } from "../../models/scienceBonus.js";
-import type { ICommand } from "../../utils/ICommand.js";
-import type { GameState } from "../gameState.js";
+import { Resources } from "../models/resources.js";
+import { ScienceBonusType } from "../models/scienceBonus.js";
+import type { ICommand } from "../interfaces/ICommand.js";
+import type { GameState } from "../game/gameState.js";
 
 export class AttackBuildingCommand implements ICommand {
 	constructor(
@@ -26,20 +24,21 @@ export class AttackBuildingCommand implements ICommand {
 		if (this.attackerId === attackedBuilding.getOwnerId())
 		return "Player " + this.attackerId + " cannot attack its own building on tile " + this.tileId;
 
-		const defenderTileNeighbors = this.gameState.getMap().getTile(this.tileId)?.getNeighbors();
-		let isAttackerNeighbor = false
-		if (defenderTileNeighbors) {
-			for (const id of defenderTileNeighbors) {
+		const defenderNeighborsTileIds = this.gameState.getMap().getTile(this.tileId)?.getNeighbors();
+		let hasNeighborAttacker = false
+
+		if (defenderNeighborsTileIds) {
+			for (const id of defenderNeighborsTileIds) {
 				if (!id) continue;
-				const neighborTile = this.gameState.getMap().getTile(id);
-				if (neighborTile?.getOwnerId() === this.attackerId) {
-					isAttackerNeighbor = true;
+				const neighborBuilding = this.gameState.getMap().getBuilding(id);
+				if (neighborBuilding && neighborBuilding?.getOwnerId() === this.attackerId) {
+					hasNeighborAttacker = true;
 					break;
 				}
 			}
 		}
 
-		if (!isAttackerNeighbor)
+		if (!hasNeighborAttacker)
 			return "Cannot attack building on tile " + this.tileId + " : not a neighbor."
 
 		if (attacker.getCivilisation().getResources().getSoldiers() < this.troopCount)

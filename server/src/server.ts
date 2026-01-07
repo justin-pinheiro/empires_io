@@ -1,7 +1,7 @@
 import express from 'express';
 import { createServer } from 'http';
 import { Server } from 'socket.io';
-import { CommandHandler } from './game/commands/commandHandler.js';
+import { CommandHandler } from './commands/commandHandler.js';
 import { setupSocketHandlers } from './sockets/socketHandler.js';
 import { env } from './config/env.js';
 import { GameEngine } from './game/gameEngine.js';

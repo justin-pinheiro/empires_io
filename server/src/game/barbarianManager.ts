@@ -1,10 +1,12 @@
 import { GameState } from './gameState.js';
 import { GameEngine } from './gameEngine.js';
 import { BuildingType } from '../models/buildingData.js';
-import Logger from '../utils/logger.js';
+import Logger from '../config/logger.js';
 import { Resources } from '../models/resources.js';
+import { BARBARIAN_ATTACK_INTERVAL, BARBARIAN_COLOR, BARBARIAN_SPAWN_INTERVAL, BARBARIAN_TROOPS_PER_CAMP, BARBARIANS_BUILDINGS_CAMP_RATIO } from '../config/constants.js';
+import EventEmitter from 'events';
 
-export class BarbarianManager {
+export class BarbarianManager extends EventEmitter {
   private spawnAccumulator = 0;
   private attackAccumulator = 0;
   
@@ -12,15 +14,11 @@ export class BarbarianManager {
   
   private readonly playerId = 'Barbarians';
   private readonly playerName = 'Barbarians';
-
-  private readonly BUILDINGS_PER_CAMP = 10; 
-  private readonly SPAWN_INTERVAL = 60;     
-  private readonly ATTACK_INTERVAL = 1;    
-  private readonly ATTACK_POWER = 5;
-
+   
   constructor(private state: GameState, private game: GameEngine) {
+    super();
     if (!this.state.getPlayer(this.playerId)) {
-      this.state.addPlayer(this.playerId, this.playerName, "#000000");
+      this.state.addPlayer(this.playerId, this.playerName, BARBARIAN_COLOR);
     }
   }
 
@@ -28,12 +26,12 @@ export class BarbarianManager {
     this.spawnAccumulator += dt;
     this.attackAccumulator += dt;
 
-    if (this.spawnAccumulator >= this.SPAWN_INTERVAL) {
+    if (this.spawnAccumulator >= BARBARIAN_SPAWN_INTERVAL) {
       this.spawnAccumulator = 0;
       this.spawnCampsIndependently();
     }
 
-    if (this.attackAccumulator >= this.ATTACK_INTERVAL) {
+    if (this.attackAccumulator >= BARBARIAN_ATTACK_INTERVAL) {
       this.attackAccumulator = 0;
       this.performFocusedAttacks();
     }
@@ -56,7 +54,7 @@ export class BarbarianManager {
         return this.state.getMap().getBuilding(targetId)?.getOwnerId() === id;
       }).length;
 
-      const targetCampCount = Math.floor(playerBuildings.length / this.BUILDINGS_PER_CAMP);
+      const targetCampCount = Math.floor(playerBuildings.length / BARBARIANS_BUILDINGS_CAMP_RATIO);
       const spawnsNeeded = Math.max(0, targetCampCount - campsTargetingPlayer);
 
       if (spawnsNeeded > 0 && playerOutposts.length > 0) {
@@ -74,8 +72,8 @@ export class BarbarianManager {
 
       if (tileId) {
         this.state.removeBuilding(tileId);
-        // Use addBarbarianCamp to ensure territory transfer
         this.state.addBarbarianCamp(this.playerId, tileId);
+        this.emit('buildingsUpdate');
   
         const targetId = this.findNeighboringPlayerBuilding(tileId, targetPlayerId);
         if (targetId) {
@@ -97,7 +95,6 @@ export class BarbarianManager {
 
       const targetBuilding = this.state.getMap().getBuilding(targetId);
       
-      // If target is destroyed, convert it and find new targets
       if (!targetBuilding || targetBuilding.isDestroyed()) {
         const lastOwner = targetBuilding?.getOwnerId();
         this.spreadInfection(targetId, campId, lastOwner);
@@ -105,9 +102,9 @@ export class BarbarianManager {
       }
 
       // Attack Logic
-      this.game.getPlayer(this.playerId)?.getCivilisation().addToResources(new Resources(0,0,0,this.ATTACK_POWER,0));
-      this.game.getPlayer(this.playerId)?.getCivilisation().updateResourcesCapacity(new Resources(0,0,0,this.ATTACK_POWER,0), 1);
-      this.game.attackBuilding(this.playerId, targetId, this.ATTACK_POWER);
+      this.game.getPlayer(this.playerId)?.getCivilisation().addToResources(new Resources(0,0,0,BARBARIAN_TROOPS_PER_CAMP,0));
+      this.game.getPlayer(this.playerId)?.getCivilisation().updateResourcesCapacity(new Resources(0,0,0,BARBARIAN_TROOPS_PER_CAMP,0), 1);
+      this.game.attackBuilding(this.playerId, targetId, BARBARIAN_TROOPS_PER_CAMP);
     }
   }
 

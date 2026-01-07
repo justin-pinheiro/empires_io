@@ -1,6 +1,6 @@
-import { BUILDING_STATS, BuildingType } from "../../models/buildingData.js";
-import type { ICommand } from "../../utils/ICommand.js";
-import type { GameState } from "../gameState.js";
+import { BUILDING_STATS, BuildingType } from "../models/buildingData.js";
+import type { ICommand } from "../interfaces/ICommand.js";
+import type { GameState } from "../game/gameState.js";
 
 export class PlaceBuildingCommand implements ICommand {
   constructor(

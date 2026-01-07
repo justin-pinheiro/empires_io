@@ -2,16 +2,17 @@ import { EventEmitter } from 'events';
 import { BuildingType } from "../models/buildingData.js";
 import { GameLoop } from "./gameLoop.js";
 import { GameState } from "./gameState.js";
-import { CommandHandler } from "./commands/commandHandler.js";
-import { PlaceBuildingCommand } from "./commands/placeBuildingCommand.js";
-import { AttackBuildingCommand } from "./commands/attackBuildingCommand.js";
+import { CommandHandler } from "../commands/commandHandler.js";
+import { PlaceBuildingCommand } from "../commands/placeBuildingCommand.js";
+import { AttackBuildingCommand } from "../commands/attackBuildingCommand.js";
 import { BarbarianManager } from "./barbarianManager.js";
-import Logger from "../utils/logger.js";
+import Logger from "../config/logger.js";
 import { Player } from '../models/player.js';
 import type { Tile } from '../models/tile.js';
-import { UpgradeBuildingCommand } from './commands/upgradeBuildingCommand.js';
-import { DeleteBuildingCommand } from './commands/deleteBuildingCommand.js';
+import { UpgradeBuildingCommand } from '../commands/upgradeBuildingCommand.js';
+import { DeleteBuildingCommand } from '../commands/deleteBuildingCommand.js';
 import { Resources } from '../models/resources.js';
+import { PLAYER_COLORS } from '../config/constants.js';
 
 /**
  * The GameEngine coordinates the state, the loop, and external commands.
@@ -41,11 +42,10 @@ export class GameEngine extends EventEmitter {
       const player = this.state.getPlayer(playerId);
       if (player) {
         this.emit('ageIncrease', playerId, player.getCivilisation().getAge());
-        }
+      }
     });
     this.barbarianManager.update(dt);
     this.emit('resourcesUpdate');
-    this.emit('buildingsUpdate');
   }
 
   // --- Command Interface ---
@@ -61,18 +61,21 @@ export class GameEngine extends EventEmitter {
     this.commandHandler.handleCommand(
       new AttackBuildingCommand(this.state, playerId, tileId, troopCount)
     );
+    this.emit('buildingsUpdate');
   }
   
-  upgradeBuilding(playerId: string, tileId: any) {
+  public upgradeBuilding(playerId: string, tileId: any) {
     this.commandHandler.handleCommand(
       new UpgradeBuildingCommand(this.state, playerId, tileId)
     );
+    this.emit('buildingsUpdate');
   }
 
-  deleteBuilding(playerId: string, tileId: any) {
+  public deleteBuilding(playerId: string, tileId: any) {
     this.commandHandler.handleCommand(
       new DeleteBuildingCommand(this.state, playerId, tileId)
     );
+    this.emit('buildingsUpdate');
   }
 
   public setStartingResources(playerId: string) {
@@ -96,13 +99,15 @@ export class GameEngine extends EventEmitter {
       const visibleTileIds = new Set<string>();
       const map = this.state.getMap();
       
-      const playerBuildings = map.getAllBuildingTiles().filter(tileId => {
-          return map.getBuilding(tileId)?.getOwnerId() === playerId;
+      const playerTileIds = map.getAllTileIds().filter(tileId => {
+        const building = map.getBuilding(tileId)
+        if (building) return building.getOwnerId() === playerId;
+        return false;
       });
 
-      playerBuildings.forEach(tileId => {
-          const building = map.getBuilding(tileId);
-          const tile = map.getTile(tileId);
+      playerTileIds.forEach(id => {
+          const building = map.getBuilding(id);
+          const tile = map.getTile(id);
           
           if (building && tile) {
               const visionRange = building.stats.vision || 1;
@@ -130,25 +135,26 @@ export class GameEngine extends EventEmitter {
    * Returns only the buildings located on tiles the player can see.
    */
   public getVisibleBuildingsForPlayer(playerId: string): Record<string, any> {
-      const visibleIds = this.getVisibleTileIdsForPlayer(playerId);
-      const visibleBuildings: Record<string, any> = {};
-      const map = this.state.getMap();
+    const visibleIds = this.getVisibleTileIdsForPlayer(playerId);
+    const visibleBuildings: Record<string, any> = {};
+    const map = this.state.getMap();
 
-      visibleIds.forEach(id => {
-          const building = map.getBuilding(id);
-          if (building) {
-              visibleBuildings[id] = building.serialize();
-          }
-      });
+    visibleIds.forEach(id => {
+        const building = map.getBuilding(id);
+        if (building) {
+            const data = building.serialize();
+            visibleBuildings[id] = data;
+        }
+    });
 
-      return visibleBuildings;
+    return visibleBuildings;
   }
 
   // --- Player Logic ---
 
   public addPlayer(playerId: string, name: string, hex_color: string | null = null): void {
     if (!hex_color) {
-      const colors = Player.getColors();
+      const colors = PLAYER_COLORS;
       const randomIndex = Math.floor(Math.random() * colors.length);
       hex_color = colors[randomIndex]!;
     }
@@ -170,7 +176,9 @@ export class GameEngine extends EventEmitter {
   }
 
   public getRandomStartingTile() {
-    const playerTileIds = this.state.getMap().getAllBuildingTiles();
+    const playerTileIds = this.state.getMap().getAllTileIds().filter(tileId => {
+      return this.state.getMap().getBuilding(tileId) ? true : false;
+    });
     let tiles: Array<Tile> = []
     playerTileIds.forEach(id => {
       const tile = this.state.getMap().getTile(id)
@@ -182,24 +190,5 @@ export class GameEngine extends EventEmitter {
   public setPlayerCapital(playerId: string, tileId: string): void {
     if (!tileId) throw new Error('Capital tile ID is required.');
     this.state.addBuilding(playerId, BuildingType.CAPITAL, tileId);
-    this.emit('buildingsUpdate');
-  }
-
-  public removePlayerBuildings(playerId: string) {
-    const buildingTilesIds = this.state.getMap().getAllBuildingTiles();
-    buildingTilesIds.forEach(tileId => {
-      if (this.state.getMap().getBuilding(tileId)?.getOwnerId() === playerId) {
-        this.state.removeBuilding(tileId);
-      }
-    })
-  }
-  
-  public removePlayerTilesOwnership(playerId: string) {
-    const tilesIds = this.state.getMap().getAllTileIds();
-    tilesIds.forEach(tileId => {
-      if (this.state.getMap().getTile(tileId)?.getOwnerId() === playerId) {
-        this.state.getMap().removeTileOwner(tileId);
-      }
-    })
   }
 }

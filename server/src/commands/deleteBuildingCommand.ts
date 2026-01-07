@@ -1,5 +1,5 @@
-import type { ICommand } from "../../utils/ICommand.js";
-import type { GameState } from "../gameState.js";
+import type { ICommand } from "../interfaces/ICommand.js";
+import type { GameState } from "../game/gameState.js";
 
 export class DeleteBuildingCommand implements ICommand {
 	constructor(

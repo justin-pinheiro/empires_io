@@ -1,7 +1,7 @@
 import { describe, test, expect, vi, beforeEach } from 'vitest';
 import { GameEngine } from '../../game/gameEngine.js';
 import { GameState } from '../../game/gameState.js';
-import { CommandHandler } from '../../game/commands/commandHandler.js';
+import { CommandHandler } from '../../commands/commandHandler.js';
 
 describe('GameEngine', () => {
   let engine: GameEngine;

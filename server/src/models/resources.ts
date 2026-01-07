@@ -1,6 +1,11 @@
-/**
- * Handles economy logic and resource arithmetic.
- */
+export type ResourceData = {
+  food: number;
+  gold: number;
+  science: number;
+  soldiers: number;
+  workers: number;
+};
+
 export class Resources {
   constructor(
     private food: number = 0,
@@ -9,27 +14,33 @@ export class Resources {
     private soldiers: number = 0,
     private workers: number = 0
   ) {}
-    
- /**
-   * Static factory to create a "zeroed" resource object.
-   */
+
   static zero(): Resources {
     return new Resources(0, 0, 0, 0, 0);
   }
 
-  // --- Getters ---
+  /**
+   * Creates a Resources instance from a partial object.
+   */
+  static from(data: Partial<ResourceData>): Resources {
+    return new Resources(
+      data.food ?? 0,
+      data.gold ?? 0,
+      data.science ?? 0,
+      data.soldiers ?? 0,
+      data.workers ?? 0
+    );
+  }
 
+  // --- Getters ---
   public getFood() { return this.food; }
   public getGold() { return this.gold; }
   public getScience() { return this.science; }
   public getSoldiers() { return this.soldiers; }
   public getWorkers() { return this.workers; }
 
-// --- Arithmetic ---
+  // --- Arithmetic ---
 
-  /**
-   * Adds another resource set to this one (in-place).
-   */
   public add(incoming: Resources): void {
     this.food += incoming.food;
     this.gold += incoming.gold;
@@ -38,21 +49,14 @@ export class Resources {
     this.workers += incoming.workers;
   }
 
-  /**
-   * Subtracts another resource set (in-place).
-   * Note: This allows negative values unless you add Math.max(0, ...) logic.
-   */
-  public subtract(incoming: Resources): void {
-    this.food -= incoming.food;
-    this.gold -= incoming.gold;
-    this.science -= incoming.science;
-    this.soldiers -= incoming.soldiers;
-    this.workers -= incoming.workers;
+  public subtract(incoming: Resources): void {    
+    this.food = Math.max(0, this.food - incoming.food);
+    this.gold = Math.max(0, this.gold - incoming.gold);
+    this.science = Math.max(0, this.science - incoming.science);
+    this.soldiers = Math.max(0, this.soldiers - incoming.soldiers);
+    this.workers = Math.max(0, this.workers - incoming.workers);
   }
 
-  /**
-   * Checks if the current resources meet or exceed the required cost.
-   */
   public hasEnough(cost: Resources): boolean {
     return (
       this.food >= cost.food &&
@@ -63,10 +67,11 @@ export class Resources {
     );
   }
 
-  /**
-   * Returns a clean, floored object for UI or persistence.
-   */
-  public serialize() {
+  public clone(): Resources {
+    return new Resources(this.food, this.gold, this.science, this.soldiers, this.workers);
+  }
+
+  public serialize(): ResourceData {
     return {
       food: Math.floor(this.food),
       gold: Math.floor(this.gold),
@@ -74,9 +79,5 @@ export class Resources {
       soldiers: Math.floor(this.soldiers),
       workers: Math.floor(this.workers),
     };
-  }
-
-  public toJSON() {
-    return this.serialize();
   }
 }

@@ -1,43 +1,42 @@
-# Empire.io (MVP)
+# empires.io
 
-A minimalist, multiplayer strategy game where empires breathe, consume, and collapse. Build a sprawling civilization on a hexagonal grid, manage tight resource chains, and lead AI armies through a unique "Hegemon & Vassal" system.
+Minimalist multiplayer strategy game. 
+Develop your civilization on a hexagonal grid, manage your resources and capture all capitals.
 
-## 1. The Core Loop
+## Resources
 
-* **Expand:** Every building must touch your existing frontier.
-* **Sustain:** Every tile costs **Food**. Every army costs **Gold**. Every defense costs **Stone**.
-* **Conquer:** You do not control units. You place a **Target Marker**, and your AI camps automatically send troops to that location.
+There are only 5 resources. 
+All are produced by your buildings and have a maximum storage. 
+They all serve a different purpose.
 
-## 2. Key Mechanics
+| Resource | Purpose |
+| --- | --- |
+| **Food** | Used to buy buildings. |
+| **Gold** | Used to buy buildings. |
+| **Workers** | Used to construct buildings. |
+| **Soldiers** | Used to damage and capture enemy buildings. |
+| **Science** | Used to progress through ages. |
 
-### The Hegemon System
+## Buildings
 
-* **Automatic Attachment:** New players (Vassals) are automatically tethered to the nearest large empire (Hegemon).
-* **Protection:** Hegemons can build **Garrison Camps** inside Vassal territory to defend them.
-* **Independence:** Once a Vassal grows large enough, they can "Rebel." When they do, they **steal** all Garrison Camps currently on their land.
+Buildings are used to produce resources or defend strategic areas.
 
-### Resource Hierarchy
+| Resource | Purpose |
+| --- | --- |
+| **Capital** | Produces all resources. Game over if captured. |
+| **Farm** | Produces and stores food. |
+| **Market** | Produces and stores gold. |
+| **House** | Produces and stores workers. |
+| **Barracks** | Produces and stores soldiers. |
+| **Library** | Produces and stores science. |
+| **Fortifications** | Strong building that protects neighboring buildings. |
 
-| Building | Input | Output | Purpose |
-| --- | --- | --- | --- |
-| **Farm** | Space | 3 Food | Each tile you own consumes 1 Food. No food = Tile Decay. |
-| **Market** | Space | Gold | Pays for AI army upkeep. No gold = Armies stop moving. |
-| **Mine** | Mountain | Stone | Used to build and repair Watch Towers and Castles. |
-| **Camps** | Gold | AI Units | Automatically spawns Infantry, Archers, or Cavalry. |
+## Game mechanics
 
-### AI Warfare
+### Construction
 
-* Players have **one** Target Marker.
-* AI units move procedurally toward the marker.
-* **Strategy:** If a small player cuts off a Hegemon’s Farm or Market, it triggers a **Snowball Collapse**, where the large empire loses the ability to feed its tiles or pay its soldiers.
+### Upgrade
 
-## 3. Controls
+### Remove
 
-* **Left Click:** Select building / Place building on hex.
-* **Right Click:** Place "Target Marker" for AI armies.
-* **Scroll:** Zoom in/out of the map.
-* **Button [I]:** Claim Independence (Only available to Vassals).
-
-## 5. Winning Condition
-
-There is no "end." Survival is the goal. Your score is based on the **Total Land Area** and **Number of Vassals** currently under your protection.
+### Attack
