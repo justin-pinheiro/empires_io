@@ -81,11 +81,11 @@ export class GameEngine extends EventEmitter {
   public setStartingResources(playerId: string) {
     const civ = this.getPlayer(playerId)?.getCivilisation();
     civ?.addToResources(new Resources (
-      civ.getResourcesCapacity().getFood(),
-      civ.getResourcesCapacity().getGold(),
+      civ.getCapacity().getFood(),
+      civ.getCapacity().getGold(),
       0,
-      civ.getResourcesCapacity().getSoldiers(),
-      civ.getResourcesCapacity().getWorkers(),
+      civ.getCapacity().getSoldiers(),
+      civ.getCapacity().getWorkers(),
     ))
   }
   

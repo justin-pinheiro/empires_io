@@ -8,56 +8,36 @@ export class Research {
         [ScienceBonusType.PRODUCTION, 0]
     ]);
 
-    public addUpgradePoint(): void {
-        this.pendingUpgrades++;
-    }
-
-    public getLevel(type: ScienceBonusType): number {
-        return this.levels.get(type) || 0;
-    }
-
-    public getPendingUpgrades(): number {
-        return this.pendingUpgrades;
-    }
+    public addUpgradePoint = () => this.pendingUpgrades++;
+    public getPendingUpgrades = () => this.pendingUpgrades;
+    public getLevel = (type: ScienceBonusType) => this.levels.get(type) ?? 0;
 
     /**
      * Returns the current multiplier for a specific bonus type.
-     * If no upgrades have been researched (Level 0), returns 1.0.
+     * If no upgrades have been researched (Level 0), returns 1.
      */
     public getMultiplier(type: ScienceBonusType): number {
-        const currentLevel = this.levels.get(type) || 0;
-        if (currentLevel === 0) { return 1.0;}
-
-        const bonusData = SCIENCE_BRANCHES[type][currentLevel];
-        return bonusData ? bonusData.multiplier : 1.0;
-    }   
+        const lvl = this.getLevel(type);
+        return SCIENCE_BRANCHES[type][lvl]?.multiplier ?? 1.0;
+    }
 
     public getAvailableOptions(): ScienceBonusData[] {
         if (this.pendingUpgrades <= 0) return [];
 
-        const types = Object.values(ScienceBonusType) as ScienceBonusType[];
-
-        return types
-            .map(type => {
-                const currentLevel = this.levels.get(type) || 0;
-                const nextLevel = currentLevel + 1;
-                return SCIENCE_BRANCHES[type][nextLevel];
-            })
-            .filter((v): v is ScienceBonusData => v !== undefined);
+        return (Object.values(ScienceBonusType) as ScienceBonusType[])
+            .map(type => SCIENCE_BRANCHES[type][this.getLevel(type) + 1])
+            .filter((bonus): bonus is ScienceBonusData => !!bonus);
     }
 
     public applyUpgrade(type: ScienceBonusType): boolean {
-        if (this.pendingUpgrades <= 0) return false;
+        const nextLevel = this.getLevel(type) + 1;
+        const canUpgrade = this.pendingUpgrades > 0 && !!SCIENCE_BRANCHES[type][nextLevel];
 
-        const currentLevel = this.levels.get(type) || 0;
-        const nextLevel = currentLevel + 1;
-
-        if (SCIENCE_BRANCHES[type][nextLevel]) {
+        if (canUpgrade) {
             this.levels.set(type, nextLevel);
             this.pendingUpgrades--;
-            return true;
         }
 
-        return false;
+        return canUpgrade;
     }
 }

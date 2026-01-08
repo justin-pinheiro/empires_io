@@ -1,4 +1,4 @@
-import { AGES_DATA, AgeType, getNextAge } from "./age.js";
+import { getNextAge, getRequiredScience } from "./age.js";
 import { Research } from "./research.js";
 import { Resources } from "./resources.js";
 
@@ -7,87 +7,48 @@ import { Resources } from "./resources.js";
  */
 export class Civilisation {
     private age: number = 1;
-    private research: Research;
-    private resources: Resources;
-    private production: Resources;
-    private resourcesCapacity: Resources;
+    private research: Research = new Research();
+    private resources: Resources = Resources.zero();
+    private production: Resources = Resources.zero();
+    private capacity: Resources = Resources.zero();
 
-    constructor(private readonly name: string) {
-        this.resources = Resources.zero();
-        this.resourcesCapacity = Resources.zero();
-        this.production = Resources.zero();
-        this.research = new Research();
-    }
-
-    // --- Getters ---
+    constructor(private readonly name: string) {}
 
     public getName(): string { return this.name; }
     public getAge(): number { return this.age; }
     public getResearch(): Research { return this.research; }
+    public getResources(): Resources { return this.resources.clone(); }
+    public getCapacity(): Resources { return this.capacity.clone(); }
+    public getProduction(multiplier: number): Resources { return this.production.clone(multiplier); }
 
-    /**
-     * Returns a copy of the resources to prevent external direct mutation.
-     */
-    public getResources(): Resources {
-        const r = this.resources;
-        return new Resources(r.getFood(), r.getGold(), r.getScience(), r.getSoldiers(), r.getWorkers());
+    public addToResources(incoming: Resources): void {
+        const availableSpace = this.capacity.clone()
+        availableSpace.subtract(this.resources);
+        const actualAddition = incoming.clamp(availableSpace);
+        this.resources.add(actualAddition);
     }
-
-    /**
-     * Returns a copy of the resources capacity to prevent external direct mutation.
-     */
-    public getResourcesCapacity(): Resources {
-        const r = this.resourcesCapacity;
-        return new Resources(r.getFood(), r.getGold(), r.getScience(), r.getSoldiers(), r.getWorkers());
-    }
-
-    /**
-     * Returns a copy of the production to prevent external direct mutation.
-     */
-    public getProduction(multiplier: number): Resources {
-        const r = this.production;
-        return new Resources(
-            r.getFood()*multiplier, 
-            r.getGold()*multiplier, 
-            r.getScience()*multiplier, 
-            r.getSoldiers()*multiplier, 
-            r.getWorkers()*multiplier
-        );
-    }
-
-    public addToResources(incoming: Resources) {
-        const finalAddition = new Resources(
-            Math.min(incoming.getFood(), Math.max(0, this.resourcesCapacity.getFood() - this.resources.getFood())),
-            Math.min(incoming.getGold(), Math.max(0, this.resourcesCapacity.getGold() - this.resources.getGold())),
-            Math.min(incoming.getScience(), Math.max(0, this.resourcesCapacity.getScience() - this.resources.getScience())),
-            Math.min(incoming.getSoldiers(), Math.max(0, this.resourcesCapacity.getSoldiers() - this.resources.getSoldiers())),
-            Math.min(incoming.getWorkers(), Math.max(0, this.resourcesCapacity.getWorkers() - this.resources.getWorkers())),
-        );
-
-        this.resources.add(finalAddition);
-    }
-
-    public hasProgressedToNextAge() {
-        const currentScience = this.getResources().getScience();
-        const nextAge = getNextAge(this.age);
-        if (nextAge) {
-            const nextAgeData = AGES_DATA[nextAge];
-            if (currentScience >= nextAgeData.requiredScience) {
-                this.subtractFromResources(new Resources(0,0,nextAgeData.requiredScience,0,0));
-                this.age++;
-                this.research.addUpgradePoint();
-                return true;
-            }
-        }
-        return false
-    }
-
+    
     public subtractFromResources(resources: Resources) {
         this.resources.subtract(resources);
     }
 
+    public tryAdvanceAge(): boolean {
+        const nextAge = getNextAge(this.age);
+        if (!nextAge) return false;
+
+        const scienceCost = getRequiredScience(nextAge);
+        
+        if (this.resources.getScience() >= scienceCost) {
+            this.resources.subtract(Resources.from({ science: scienceCost }));
+            this.age++;
+            this.research.addUpgradePoint();
+            return true;
+        }
+        return false;
+    }
+
     public updateResourcesCapacity(update: Resources, multiplier: number): void {
-        this.resourcesCapacity.add( new Resources (
+        this.capacity.add( new Resources (
             Math.max(0, update.getFood() * multiplier),
             Math.max(0, update.getGold() * multiplier),
             Math.max(0, update.getScience() * multiplier),
@@ -96,22 +57,16 @@ export class Civilisation {
         ));
     }
 
-    public resetProduction() {
+    public resetProductionToZero() {
         this.production = Resources.zero();
     }
 
-    public resetCapacity() {
-        this.resourcesCapacity = Resources.zero();
+    public resetCapacityToZero() {
+        this.capacity = Resources.zero();
     }
 
     public updateProduction(update: Resources, multiplier: number): void {
-        this.production.add( new Resources (
-            update.getFood() * multiplier,
-            update.getGold() * multiplier,
-            update.getScience() * multiplier,
-            update.getSoldiers() * multiplier,
-            update.getWorkers() * multiplier,
-        ));
+        this.production.add(update, multiplier);
     }
 
     public serialize() {
@@ -119,7 +74,7 @@ export class Civilisation {
             name: this.name,
             age: this.age,
             resources: this.resources.serialize(),
-            resourcesCapacity: this.resourcesCapacity.serialize(),
+            resourcesCapacity: this.capacity.serialize(),
             production: this.production.serialize(),
         }
     };

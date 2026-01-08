@@ -28,7 +28,7 @@ export class Building {
     
     if (!stats) {
         throw new Error(
-            `Configuration Missing: No stats found for ${this.type} at level ${this.level}`
+            `Configuration missing: No stats found for ${this.type} at level ${this.level}`
         );
     }
     return stats;
@@ -79,20 +79,14 @@ export class Building {
 
   /**
    * Calculates resources produced over one turn.
-   * Subtract buildings maintenance cost.
-   * Note: This returns a new Resources object representing the "income".
    */
   public calculateProduction(production_multiplier: number): Resources {
     const rate = this.stats.productionRate;
     const multiplier = rate * production_multiplier;
+    const production = new Resources();
+    production.add(this.stats.production, multiplier);
 
-    return new Resources(
-      this.stats.production.getFood() * multiplier,
-      this.stats.production.getGold() * multiplier,
-      this.stats.production.getScience() * multiplier,
-      this.stats.production.getSoldiers() * multiplier,
-      this.stats.production.getWorkers() * multiplier,
-    );
+    return production;
   }
 
   // --- Serialization ---

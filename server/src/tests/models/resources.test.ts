@@ -46,6 +46,16 @@ describe('Resources Class', () => {
       expect(wallet.getSoldiers()).toBe(10);
       expect(wallet.getWorkers()).toBe(10);
     });
+
+    it('should clamp resources correctly', () => {
+      const income = new Resources(100, 10, -10, 100, 100);
+      const capacity = new Resources(50, 50, 50, 50, 50);
+      const result = income.clamp(capacity);
+
+      expect(result.getFood()).toBe(50);
+      expect(result.getGold()).toBe(10);
+      expect(result.getScience()).toBe(0);
+    });
   });
 
   describe('Validation & Serialization', () => {

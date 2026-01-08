@@ -34,7 +34,7 @@ export class GameState extends EventEmitter {
   }
   
   private setProduction(playerId: string) {
-    this.getPlayer(playerId)?.getCivilisation().resetProduction();
+    this.getPlayer(playerId)?.getCivilisation().resetProductionToZero();
     const buildings = this.map.getAllBuildings();
     buildings.forEach(building => {
       if (building && !building.isDestroyed() && building.getOwnerId() === playerId) 
@@ -50,7 +50,7 @@ export class GameState extends EventEmitter {
   }
   
   private setCapacity(playerId: string) {
-    this.getPlayer(playerId)?.getCivilisation().resetCapacity();
+    this.getPlayer(playerId)?.getCivilisation().resetCapacityToZero();
     const buildings = this.map.getAllBuildings();
     buildings.forEach(building => {
       if (building && !building.isDestroyed() && building.getOwnerId() === playerId) 
@@ -75,7 +75,7 @@ export class GameState extends EventEmitter {
   public processScience(): string[] {
     const leveledUpIds: string[] = [];
     this.players.forEach((player, id) => {
-      const hasLeveled = player.getCivilisation().hasProgressedToNextAge();
+      const hasLeveled = player.getCivilisation().tryAdvanceAge();
         if (hasLeveled) {
           leveledUpIds.push(id);
         }
@@ -101,11 +101,11 @@ export class GameState extends EventEmitter {
     
     if (type === BuildingType.CAPITAL) {
       civ.addToResources(new Resources(
-        civ.getResourcesCapacity().getFood(),
-        civ.getResourcesCapacity().getGold(),
+        civ.getCapacity().getFood(),
+        civ.getCapacity().getGold(),
         0,
-        civ.getResourcesCapacity().getSoldiers(),
-        civ.getResourcesCapacity().getWorkers(),
+        civ.getCapacity().getSoldiers(),
+        civ.getCapacity().getWorkers(),
       ));
     }
 

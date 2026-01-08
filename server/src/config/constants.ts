@@ -26,6 +26,10 @@ export const BARBARIAN_ATTACK_INTERVAL = 1;
 export const BARBARIAN_TROOPS_PER_CAMP = 5;
 export const BARBARIAN_COLOR = "#C0392B";
 
+// ages
+export const AGE_MAX = 10;
+export const AGE_BASE_SCIENCE_COST = 100;
+
 // players
 export const PLAYER_COLORS = [
     "#E67E22",

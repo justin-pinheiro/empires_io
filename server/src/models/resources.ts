@@ -41,20 +41,30 @@ export class Resources {
 
   // --- Arithmetic ---
 
-  public add(incoming: Resources): void {
-    this.food += incoming.food;
-    this.gold += incoming.gold;
-    this.science += incoming.science;
-    this.soldiers += incoming.soldiers;
-    this.workers += incoming.workers;
+  public add(incoming: Resources, multiplier: number = 1): void {
+    this.food += incoming.food * multiplier;
+    this.gold += incoming.gold * multiplier;
+    this.science += incoming.science * multiplier;
+    this.soldiers += incoming.soldiers * multiplier;
+    this.workers += incoming.workers * multiplier;
   }
 
-  public subtract(incoming: Resources): void {    
-    this.food = Math.max(0, this.food - incoming.food);
-    this.gold = Math.max(0, this.gold - incoming.gold);
-    this.science = Math.max(0, this.science - incoming.science);
-    this.soldiers = Math.max(0, this.soldiers - incoming.soldiers);
-    this.workers = Math.max(0, this.workers - incoming.workers);
+  public subtract(incoming: Resources, multiplier: number = 1): void {    
+    this.food = Math.max(0, this.food - (incoming.food * multiplier));
+    this.gold = Math.max(0, this.gold - (incoming.gold * multiplier));
+    this.science = Math.max(0, this.science - (incoming.science * multiplier));
+    this.soldiers = Math.max(0, this.soldiers - (incoming.soldiers * multiplier));
+    this.workers = Math.max(0, this.workers - (incoming.workers * multiplier));
+  }
+
+  public clamp(limits: Resources): Resources {
+    return new Resources(
+      Math.min(Math.max(0, this.food), limits.food),
+      Math.min(Math.max(0, this.gold), limits.gold),
+      Math.min(Math.max(0, this.science), limits.science),
+      Math.min(Math.max(0, this.soldiers), limits.soldiers),
+      Math.min(Math.max(0, this.workers), limits.workers)
+    );
   }
 
   public hasEnough(cost: Resources): boolean {
@@ -67,8 +77,14 @@ export class Resources {
     );
   }
 
-  public clone(): Resources {
-    return new Resources(this.food, this.gold, this.science, this.soldiers, this.workers);
+  public clone(multiplier: number = 1): Resources {
+    return new Resources(
+      this.food * multiplier, 
+      this.gold * multiplier, 
+      this.science * multiplier, 
+      this.soldiers * multiplier, 
+      this.workers * multiplier
+    );
   }
 
   public serialize(): ResourceData {

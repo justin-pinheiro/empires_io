@@ -25,7 +25,7 @@ export class Player {
     private validateColor(color: string) {
         const hexRegex = /^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/;
         if (!hexRegex.test(color)) {
-        throw new Error(`Invalid color format: ${color}. Expected Hex code.`);
+            throw new Error(`Invalid color format: ${color}. Expected Hex code.`);
         }
     }
 
@@ -35,19 +35,11 @@ export class Player {
      */
     public serialize() {
         return {
-        id: this.id,
-        name: this.name,
-        color: this.color,
-        isNPC: this.isNPC,
-        civilisationName: this.civilisation.getName(),
+            id: this.id,
+            name: this.name,
+            color: this.color,
+            isNPC: this.isNPC,
+            civilisationName: this.civilisation.getName(),
         };
-    }
-
-    public toJSON() {
-        return this.serialize();
-    }
-
-    public static getColors() {
-        return 
     }
 }
